@@ -53,7 +53,7 @@ export default function ReservationPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#1a1a1a] text-white relative">
+    <div className="flex flex-col min-h-screen bg-[#141414] text-white relative">
       {/* Background de base sombre */}
       <div className="fixed" />
 

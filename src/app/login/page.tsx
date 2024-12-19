@@ -3,10 +3,16 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'react-hot-toast';
 
 export default function AuthPage() {
+  const router = useRouter();
+  const { login, register } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -16,7 +22,32 @@ export default function AuthPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
+    setIsLoading(true);
+
+    try {
+      if (!isLogin && formData.password !== formData.confirmPassword) {
+        toast.error("Les mots de passe ne correspondent pas");
+        return;
+      }
+
+      let success;
+      if (isLogin) {
+        success = await login(formData.email, formData.password);
+      } else {
+        success = await register(formData.name, formData.email, formData.password);
+      }
+
+      if (success) {
+        toast.success(isLogin ? 'Connexion réussie!' : 'Inscription réussie!');
+        router.push('/');
+      } else {
+        toast.error(isLogin ? 'Échec de la connexion' : "Échec de l'inscription");
+      }
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -29,15 +60,11 @@ export default function AuthPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#141414] text-white relative">
-      {/* Background de base sombre */}
       <div className="fixed inset-0 bg-black/40" />
 
-      {/* Contenu principal */}
       <main className="flex-grow relative">
         <div className="relative h-full">
-          {/* Conteneur des feuilles et du contenu central */}
           <div className="absolute inset-0 flex">
-            {/* Feuilles gauches avec une zone de transition */}
             <div className="w-[400px] relative">
               <Image
                 src="/decorations/leavesleft.webp"
@@ -46,16 +73,13 @@ export default function AuthPage() {
                 className="object-cover opacity-20"
                 priority
               />
-              {/* Dégradé de transition */}
               <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-r from-transparent to-[#141414]" />
             </div>
 
-            {/* Zone centrale avec background très sombre */}
             <div className="flex-grow bg-[#141414]">
               <div className="max-w-6xl mx-auto px-8" />
             </div>
 
-            {/* Feuilles droites avec une zone de transition */}
             <div className="w-[400px] relative">
               <Image
                 src="/decorations/leavesright.webp"
@@ -64,17 +88,13 @@ export default function AuthPage() {
                 className="object-cover opacity-20"
                 priority
               />
-              {/* Dégradé de transition */}
               <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-l from-transparent to-[#141414]" />
             </div>
           </div>
 
-          {/* Zone de contenu superposée */}
           <div className="relative flex items-center justify-center min-h-screen py-12 px-4">
             <div className="w-full max-w-md">
-              {/* Card avec effet de flou */}
               <div className="bg-[#2a2a2a]/90 backdrop-blur-md rounded-2xl shadow-xl border border-[#C4B5A2]/20 overflow-hidden">
-                {/* Logo Section */}
                 <div className="text-center p-8 bg-[#C4B5A2]">
                   <div className="relative w-24 h-24 mx-auto mb-4">
                     <Image
@@ -89,7 +109,6 @@ export default function AuthPage() {
                   </h1>
                 </div>
 
-                {/* Form Section */}
                 <div className="p-8">
                   <form onSubmit={handleSubmit} className="space-y-6">
                     {!isLogin && (
@@ -177,9 +196,14 @@ export default function AuthPage() {
 
                     <button
                       type="submit"
-                      className="w-full bg-[#C4B5A2] hover:bg-[#A69783] text-black font-medium px-6 py-3 rounded-lg transition-colors"
+                      disabled={isLoading}
+                      className="w-full bg-[#C4B5A2] hover:bg-[#A69783] text-black font-medium px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isLogin ? 'Se connecter' : "S'inscrire"}
+                      {isLoading ? (
+                        'Chargement...'
+                      ) : (
+                        isLogin ? 'Se connecter' : "S'inscrire"
+                      )}
                     </button>
                   </form>
 

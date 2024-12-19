@@ -2,6 +2,14 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+Frontend:
+npm i or npm install front
+
+Backend:
+cd backend
+npm init -y
+npm install express mongoose bcryptjs jsonwebtoken cors dotenv
+
 First, run the development server:
 
 ```bash
