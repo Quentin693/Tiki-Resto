@@ -5,16 +5,11 @@ import Carte from '@/components/Carte';
 import Menu from '@/components/Menu';
 import Wine from '@/components/Wines';
 import Image from 'next/image';
-<<<<<<< HEAD
-
-export default function MenuPage() {
-=======
 import AdminPanel from '@/components/PanelAdmin';
 
 export default function MenuPage() {
   const isAdmin = true;
 
->>>>>>> Quentin-AdminPart
   return (
     <div className="flex flex-col min-h-screen bg-[#141414] text-white relative">
       {/* Background de base sombre */}
@@ -95,10 +90,6 @@ export default function MenuPage() {
             </div>
 
             {/* Note de bas de page */}
-<<<<<<< HEAD
-=======
-
->>>>>>> Quentin-AdminPart
             <div className="mt-16 text-center text-gray-400 text-sm border-t border-[#C4B5A2]/20 pt-8">
               <p>Les prix peuvent être modifiés sans préavis. Tous nos plats sont préparés sur place.</p>
               <p className="mt-2">Pour toute allergie ou régime spécial, veuillez nous consulter.</p>
