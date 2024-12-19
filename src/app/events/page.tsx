@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { CalendarDays, Clock, Users, Bell, Send, ArrowRight, Pencil, Trash2, Plus, X, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Image from 'next/image';
@@ -27,7 +27,7 @@ export default function EventsPage() {
       id: 2,
       title: "Soirée Cocktails",
       description: "Immergez-vous dans l'ambiance des îles avec nos danseuses traditionnelles, musiciens locaux et un buffet spécial aux saveurs du Pacifique.",
-      date: "2024-12-24",
+      date: "2024-12-31",
       time: "19:00",
       capacity: "120 places",
       imagePath: "/events/cocktail.jpeg"
@@ -36,7 +36,7 @@ export default function EventsPage() {
       id: 3,
       title: "Soirée Dauphins",
       description: "Immergez-vous dans l'ambiance des îles avec nos danseuses traditionnelles, musiciens locaux et un buffet spécial aux saveurs du Pacifique.",
-      date: "2024-12-24",
+      date: "2025-01-15",
       time: "19:00",
       capacity: "120 places",
       imagePath: "/events/dauphins.jpeg"
@@ -52,6 +52,33 @@ export default function EventsPage() {
     capacity: "",
     imagePath: ""
   });
+
+  // Grouper les événements par mois
+  const groupedEvents = useMemo(() => {
+    return events.reduce((groups, event) => {
+      const date = new Date(event.date);
+      const monthYear = date.toLocaleString('fr-FR', { month: 'long', year: 'numeric' });
+      
+      if (!groups[monthYear]) {
+        groups[monthYear] = [];
+      }
+      groups[monthYear].push(event);
+      
+      // Trier les événements au sein de chaque mois par date
+      groups[monthYear].sort((a, b) => new Date(a.date) - new Date(b.date));
+      
+      return groups;
+    }, {});
+  }, [events]);
+
+  // Trier les mois chronologiquement
+  const sortedMonths = useMemo(() => {
+    return Object.keys(groupedEvents).sort((a, b) => {
+      const dateA = new Date(a.split(' ')[0] + ' 1, ' + a.split(' ')[1]);
+      const dateB = new Date(b.split(' ')[0] + ' 1, ' + b.split(' ')[1]);
+      return dateA - dateB;
+    });
+  }, [groupedEvents]);
 
   const handleNewsletterSubmit = (e) => {
     e.preventDefault();
@@ -161,11 +188,37 @@ export default function EventsPage() {
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#141414] text-white relative">
-      <div className="fixed inset-0 bg-black/40" />
+    <div className="flex flex-col min-h-screen bg-[#141414] text-white">
+      {/* Hero Section */}
+      <div className="relative h-[60vh]">
+        <div
+          className="absolute inset-0 bg-center bg-cover"
+          style={{
+            backgroundImage: `url('/image1.png')`
+          }}
+        >
+          <div className="absolute inset-0 bg-black/50" />
+        </div>
+        <div className="relative h-full flex flex-col items-center justify-center text-center px-4">
+          <img 
+            src="/logo.png"
+            alt="Tiki Logo"
+            className="w-32 h-32 mb-8 rounded-full border-2 border-[#C4B5A2]"
+          />
+          <h1 className="text-4xl md:text-6xl font-bold mb-4">
+            Événements à venir
+          </h1>
+          <p className="text-xl text-gray-200 mb-8 max-w-2xl">
+            Découvrez nos soirées exceptionnelles et moments uniques
+          </p>
+          <div className="w-24 h-1 bg-[#C4B5A2]"></div>
+        </div>
+      </div>
 
-      <main className="flex-grow relative">
-        <div className="relative h-full">
+      {/* Contenu principal */}
+      <main className="relative flex-grow bg-[#141414]">
+        <div className="relative">
+          {/* Background avec feuilles */}
           <div className="absolute inset-0 flex">
             <div className="w-[400px] relative">
               <Image
@@ -194,13 +247,8 @@ export default function EventsPage() {
             </div>
           </div>
 
-          <div className="relative max-w-6xl mx-auto px-8 py-8">
-            <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold mb-4">Événements à venir</h1>
-              <div className="w-24 h-1 bg-[#C4B5A2] mx-auto mb-4"></div>
-              <p className="text-gray-300">Découvrez les soirées et événements spéciaux organisés dans notre restaurant</p>
-            </div>
-
+          {/* Contenu */}
+          <div className="relative max-w-6xl mx-auto px-8 py-16">
             {user?.role === 'admin' && !isAddingEvent && !isEditing && (
               <div className="mb-8 flex justify-center">
                 <button
@@ -215,81 +263,94 @@ export default function EventsPage() {
 
             {(isAddingEvent || isEditing) && renderEventForm()}
 
-            <div className="space-y-8 mb-16">
-              {events.map((event) => (
-                <div 
-                  key={event.id}
-                  className="bg-[#2a2a2a]/90 backdrop-blur-md rounded-xl shadow-xl overflow-hidden border border-[#C4B5A2]/20"
-                >
-                  <div className="grid grid-cols-1 lg:grid-cols-2 h-[500px]">
-                    <div className="relative h-[500px] lg:h-full">
-                      <div className="absolute inset-0 bg-black/30 z-10" />
-                      <Image
-                        src={event.imagePath}
-                        alt={event.title}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    
-                    <div className="h-[500px] p-8 flex flex-col">
-                      <div className="flex-grow">
-                        <h2 className="text-2xl font-bold mb-4">{event.title}</h2>
-                        <p className="text-gray-400 mb-6 line-clamp-3">{event.description}</p>
-                      </div>
-                      
-                      <div className="flex-shrink-0">
-                        <div className="space-y-3 mb-6">
-                          <div className="flex items-center text-gray-300">
-                            <CalendarDays className="w-5 h-5 text-[#C4B5A2] mr-3" />
-                            {new Date(event.date).toLocaleDateString('fr-FR', {
-                              day: 'numeric',
-                              month: 'long',
-                              year: 'numeric'
-                            })}
-                          </div>
-                          <div className="flex items-center text-gray-300">
-                            <Clock className="w-5 h-5 text-[#C4B5A2] mr-3" />
-                            {event.time}
-                          </div>
-                          <div className="flex items-center text-gray-300">
-                            <Users className="w-5 h-5 text-[#C4B5A2] mr-3" />
-                            {event.capacity}
-                          </div>
-                        </div>
+            {/* Affichage des événements par mois */}
+            <div className="space-y-16 mb-16">
+              {sortedMonths.map((monthYear) => (
+                <div key={monthYear} className="space-y-8">
+                  <div className="flex items-center gap-4">
+                    <h2 className="text-3xl font-bold text-[#C4B5A2] capitalize">{monthYear}</h2>
+                    <div className="flex-grow h-0.5 bg-[#C4B5A2]/20"></div>
+                  </div>
 
-                        <div className="space-y-3">
-                          <button className="w-full bg-[#C4B5A2] hover:bg-[#A69783] text-black font-medium px-6 py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
-                            Réserver votre place
-                            <ArrowRight className="w-4 h-4" />
-                          </button>
-
-                          {user?.role === 'admin' && (
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleEditEvent(event)}
-                                className="flex-1 flex items-center justify-center gap-2 bg-blue-600 px-4 py-2 rounded hover:bg-blue-700"
-                              >
-                                <Pencil size={20} />
-                                Modifier
-                              </button>
-                              <button
-                                onClick={() => handleDeleteEvent(event.id)}
-                                className="flex-1 flex items-center justify-center gap-2 bg-red-600 px-4 py-2 rounded hover:bg-red-700"
-                              >
-                                <Trash2 size={20} />
-                                Supprimer
-                              </button>
+                  <div className="space-y-8">
+                    {groupedEvents[monthYear].map((event) => (
+                      <div 
+                        key={event.id}
+                        className="bg-[#2a2a2a]/90 backdrop-blur-md rounded-xl shadow-xl overflow-hidden border border-[#C4B5A2]/20"
+                      >
+                        <div className="grid grid-cols-1 lg:grid-cols-2 h-[500px]">
+                          <div className="relative h-[500px] lg:h-full">
+                            <div className="absolute inset-0 bg-black/30 z-10" />
+                            <Image
+                              src={event.imagePath}
+                              alt={event.title}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          
+                          <div className="h-[500px] p-8 flex flex-col">
+                            <div className="flex-grow">
+                              <h2 className="text-2xl font-bold mb-4">{event.title}</h2>
+                              <p className="text-gray-400 mb-6 line-clamp-3">{event.description}</p>
                             </div>
-                          )}
+                            
+                            <div className="flex-shrink-0">
+                              <div className="space-y-3 mb-6">
+                                <div className="flex items-center text-gray-300">
+                                  <CalendarDays className="w-5 h-5 text-[#C4B5A2] mr-3" />
+                                  {new Date(event.date).toLocaleDateString('fr-FR', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric'
+                                  })}
+                                </div>
+                                <div className="flex items-center text-gray-300">
+                                  <Clock className="w-5 h-5 text-[#C4B5A2] mr-3" />
+                                  {event.time}
+                                </div>
+                                <div className="flex items-center text-gray-300">
+                                  <Users className="w-5 h-5 text-[#C4B5A2] mr-3" />
+                                  {event.capacity}
+                                </div>
+                              </div>
+
+                              <div className="space-y-3">
+                                <button className="w-full bg-[#C4B5A2] hover:bg-[#A69783] text-black font-medium px-6 py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                  Réserver votre place
+                                  <ArrowRight className="w-4 h-4" />
+                                </button>
+
+                                {user?.role === 'admin' && (
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => handleEditEvent(event)}
+                                      className="flex-1 flex items-center justify-center gap-2 bg-blue-600 px-4 py-2 rounded hover:bg-blue-700"
+                                    >
+                                      <Pencil size={20} />
+                                      Modifier
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteEvent(event.id)}
+                                      className="flex-1 flex items-center justify-center gap-2 bg-red-600 px-4 py-2 rounded hover:bg-red-700"
+                                    >
+                                      <Trash2 size={20} />
+                                      Supprimer
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
                 </div>
               ))}
             </div>
 
+            {/* Section Newsletter */}
             <div className="bg-[#2a2a2a]/90 backdrop-blur-md rounded-xl p-8 border border-[#C4B5A2]/20 shadow-xl">
               <div className="text-center mb-8">
                 <Bell className="w-12 h-12 text-[#C4B5A2] mx-auto mb-4" />

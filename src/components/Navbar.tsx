@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
@@ -9,8 +9,21 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
   const { user, logout } = useAuth();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const isScrolled = window.scrollY > 10;
+      if (isScrolled !== scrolled) {
+        setScrolled(isScrolled);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [scrolled]);
 
   const navLinks = user?.role === 'admin' 
     ? [
@@ -31,13 +44,15 @@ export default function Navbar() {
 
   return (
     <>
-      <div className="fixed w-full z-50 px-2 sm:px-4 py-3">
-        {/* Background avec bordure dorée */}
-        <div className="absolute inset-0 bg-[#141414]/80 backdrop-blur-md" />
+      <div className="fixed w-full z-10 h-24">
+        {/* Background avec effet de flou au scroll - inversé */}
+        <div className={`absolute inset-0 transition-all duration-500 ${
+          scrolled ? 'bg-transparent backdrop-blur-none' : 'bg-black/90 backdrop-blur-sm'
+        }`} />
         
-        {/* Conteneur principal avec bordure dorée */}
-        <div className={`relative w-[90%] mx-auto bg-[#2a2a2a]/90 rounded-2xl border border-[#C4B5A2]/20 shadow-xl overflow-hidden backdrop-blur-sm ${user?.role === 'admin' ? 'h-24' : 'h-20'}`}>
-          <div className={`flex items-center justify-between px-4 lg:px-6 h-full`}>
+        {/* Conteneur principal */}
+        <div className="relative w-[90%] mx-auto h-20 mt-2 z-30 rounded-[30px] border border-[#2a2a2a]/20 shadow-xl overflow-hidden bg-[#C4B5A2]/50">
+          <div className="flex items-center justify-between px-4 lg:px-6 h-full">
             {/* Logo */}
             <Link href="/" className="relative z-50">
               <div className={`relative transition-transform hover:scale-110 ${user?.role === 'admin' ? 'w-16 h-16' : 'w-10 sm:w-12 h-10 sm:h-12'}`}>
@@ -75,7 +90,7 @@ export default function Navbar() {
                   </span>
                   <button
                     onClick={logout}
-                    className={`text-[#C4B5A2] hover:text-white transition-colors hidden lg:block px-3 py-1.5 rounded-lg border border-[#C4B5A2]/20 hover:border-[#C4B5A2]/50 ${user?.role === 'admin' ? 'text-lg px-6 py-2' : 'text-sm xl:px-4 xl:py-2 xl:text-base'}`}
+                    className={`text-[#C4B5A2] hover:text-white transition-colors hidden lg:block px-3 py-1.5 rounded-2xl border bg-[#2a2a2a] border-[#2a2a2a]/20 hover:border-[#2a2a2a]/50 ${user?.role === 'admin' ? 'text-lg px-6 py-2' : 'text-sm xl:px-4 xl:py-2 xl:text-base'}`}
                   >
                     Déconnexion
                   </button>
@@ -90,7 +105,7 @@ export default function Navbar() {
                 </div>
               ) : (
                 <Link href="/login" className="flex items-center space-x-2 sm:space-x-4">
-                  <span className="text-[#C4B5A2] hover:text-white transition-colors hidden lg:block px-3 py-1.5 text-sm xl:px-4 xl:py-2 xl:text-base rounded-lg border border-[#C4B5A2]/20 hover:border-[#C4B5A2]/50">
+                  <span className="text-[#C4B5A2] hover:text-white transition-colors hidden lg:block px-3 py-1.5 text-sm xl:px-4 xl:py-2 xl:text-base rounded-2xl border bg-[#2a2a2a] border-[#2a2a2a]/20 hover:border-[#2a2a2a]/50">
                     Se connecter
                   </span>
                 </Link>
@@ -151,7 +166,7 @@ export default function Navbar() {
       </div>
 
       {/* Espace pour éviter que le contenu ne soit caché sous la navbar fixe */}
-      <div className={user?.role === 'admin' ? 'h-32' : 'h-24'} />
+      <div className="h-24" />
     </>
   );
 }

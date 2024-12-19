@@ -2,7 +2,7 @@ import { Menu, X, Instagram, Facebook, Clock, MapPin, Phone, Contact, Calendar1I
 
 export default function Footer() {
     return (
-        <footer className="bg-[#1a1a1a] border-t border-#C4B5A2">
+        <footer className="bg-[#1a1a1a] border-t border-#C4B5A2 z-50">
         <div className="container mx-auto px-4 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="text-center md:text-left">
