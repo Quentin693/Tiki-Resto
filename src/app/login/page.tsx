@@ -100,8 +100,8 @@ export default function AuthPage() {
                     <Image
                       src="/logo.png"
                       alt="Au Tiki Logo"
-                      fill
-                      className="rounded-full object-cover border-4 border-white"
+                      width={96}
+                      height={96}
                     />
                   </div>
                   <h1 className="text-2xl font-bold text-white">

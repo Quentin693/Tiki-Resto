@@ -191,20 +191,25 @@ export default function EventsPage() {
     <div className="flex flex-col min-h-screen bg-[#141414] text-white">
       {/* Hero Section */}
       <div className="relative h-[60vh]">
-        <div
-          className="absolute inset-0 bg-center bg-cover"
-          style={{
-            backgroundImage: `url('/image1.png')`
-          }}
-        >
+        <div className="absolute inset-0 overflow-hidden">
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="absolute w-full h-full object-cover"
+          >
+            <source src="/videoTiki.mp4" type="video/mp4" />
+          </video>
           <div className="absolute inset-0 bg-black/50" />
         </div>
         <div className="relative h-full flex flex-col items-center justify-center text-center px-4">
-          <img 
-            src="/logo.png"
-            alt="Tiki Logo"
-            className="w-32 h-32 mb-8 rounded-full border-2 border-[#C4B5A2]"
-          />
+          <div>
+            <img 
+              src="/logo.png"
+              alt="Tiki Logo"
+            />
+          </div>
           <h1 className="text-4xl md:text-6xl font-bold mb-4">
             Événements à venir
           </h1>

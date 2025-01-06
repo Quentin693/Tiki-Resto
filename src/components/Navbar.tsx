@@ -4,13 +4,90 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+
+const LoadingScreen = () => {
+  return (
+<div className="fixed inset-0 bg-[#141414] z-50">
+      {/* Background avec feuilles */}
+      <div className="absolute inset-0 flex">
+        <div className="w-[400px] relative">
+          <Image
+            src="/decorations/leavesleft.webp"
+            alt="Décoration gauche"
+            fill
+            className="object-cover opacity-20"
+            priority
+          />
+          <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-r from-transparent to-[#141414]" />
+        </div>
+
+        <div className="flex-grow bg-[#141414]">
+          <div className="max-w-6xl mx-auto px-8" />
+        </div>
+
+        <div className="w-[400px] relative">
+          <Image
+            src="/decorations/leavesright.webp"
+            alt="Décoration droite"
+            fill
+            className="object-cover opacity-20"
+            priority
+          />
+          <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-l from-transparent to-[#141414]" />
+        </div>
+      </div>
+
+      {/* Contenu du loading */}
+      <div className="relative z-10 h-full flex flex-col items-center justify-center">
+        <div className="relative w-32 h-32 mb-8 animate-bounce">
+          <Image
+            src="/logo.png"
+            alt="Tiki Logo"
+            fill
+            className="object-contain"
+          />
+        </div>
+        <div className="w-48 h-1.5 bg-[#2a2a2a] rounded-full overflow-hidden">
+          <div className="h-full bg-[#C4B5A2] animate-progressBar" />
+        </div>
+        <p className="text-[#C4B5A2] mt-4 text-lg">Au revoir...</p>
+      </div>
+    </div>
+  );
+};
+
+function NavLink({ href, children, active, mobile, onClick, isAdmin }) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={`
+        relative px-2 py-1 font-normal transition-colors whitespace-nowrap
+        ${mobile ? 'text-xl' : isAdmin ? 'text-lg' : 'text-sm xl:text-base'}
+        ${active 
+          ? 'text-[#C4B5A2]' 
+          : 'text-white/80 hover:text-[#C4B5A2]'
+        }
+      `}
+    >
+      {children}
+      <span className={`
+        absolute bottom-0 left-0 w-full h-0.5 bg-[#C4B5A2] transform origin-bottom 
+        transition-transform duration-300
+        ${active ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}
+      `} />
+    </Link>
+  );
+}
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const { user, logout } = useAuth();
 
   useEffect(() => {
@@ -24,6 +101,15 @@ export default function Navbar() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [scrolled]);
+
+  const handleLogout = async () => {
+    setIsLoading(true);
+    await logout();
+    setTimeout(() => {
+      router.push('/');
+      setIsLoading(false);
+    }, 3000);
+  };
 
   const navLinks = user?.role === 'admin' 
     ? [
@@ -39,11 +125,13 @@ export default function Navbar() {
       { href: '/reserver', label: 'Réserver' },
       { href: '/events', label: 'Évènements' },
       { href: '/gallery', label: 'Galerie' },
+      { href: '/equipe', label: 'Notre Equipe' },
       { href: '/contact', label: 'Contact' }
     ];
 
   return (
     <>
+      {isLoading && <LoadingScreen />}
       <div className="fixed w-full z-10 h-24">
         {/* Background avec effet de flou au scroll - inversé */}
         <div className={`absolute inset-0 transition-all duration-500 ${
@@ -89,7 +177,7 @@ export default function Navbar() {
                     {user.name}
                   </span>
                   <button
-                    onClick={logout}
+                    onClick={handleLogout}
                     className={`text-[#C4B5A2] hover:text-white transition-colors hidden lg:block px-3 py-1.5 rounded-2xl border bg-[#2a2a2a] border-[#2a2a2a]/20 hover:border-[#2a2a2a]/50 ${user?.role === 'admin' ? 'text-lg px-6 py-2' : 'text-sm xl:px-4 xl:py-2 xl:text-base'}`}
                   >
                     Déconnexion
@@ -129,13 +217,6 @@ export default function Navbar() {
             ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}
           `}
         >
-          {/* Bouton fermer */}
-          <button
-            onClick={() => setIsMenuOpen(false)}
-            className="absolute top-6 right-6 p-2 text-[#C4B5A2] hover:text-white transition-colors rounded-full hover:bg-white/10"
-          >
-            <X size={32} />
-          </button>
 
           <div className="flex flex-col items-center justify-center h-full space-y-6">
             {navLinks.map(({ href, label }) => (
@@ -153,7 +234,7 @@ export default function Navbar() {
             {user && (
               <button
                 onClick={() => {
-                  logout();
+                  handleLogout();
                   setIsMenuOpen(false);
                 }}
                 className="text-xl text-[#C4B5A2] hover:text-white transition-colors"
@@ -168,29 +249,5 @@ export default function Navbar() {
       {/* Espace pour éviter que le contenu ne soit caché sous la navbar fixe */}
       <div className="h-24" />
     </>
-  );
-}
-
-function NavLink({ href, children, active, mobile, onClick, isAdmin }) {
-  return (
-    <Link
-      href={href}
-      onClick={onClick}
-      className={`
-        relative px-2 py-1 font-normal transition-colors whitespace-nowrap
-        ${mobile ? 'text-xl' : isAdmin ? 'text-lg' : 'text-sm xl:text-base'}
-        ${active 
-          ? 'text-[#C4B5A2]' 
-          : 'text-white/80 hover:text-[#C4B5A2]'
-        }
-      `}
-    >
-      {children}
-      <span className={`
-        absolute bottom-0 left-0 w-full h-0.5 bg-[#C4B5A2] transform origin-bottom 
-        transition-transform duration-300
-        ${active ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}
-      `} />
-    </Link>
   );
 }

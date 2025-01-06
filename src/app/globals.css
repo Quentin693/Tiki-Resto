@@ -7,3 +7,16 @@
 body {
   @apply bg-gray-100;
 }
+
+@keyframes progressBar {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-progressBar {
+  animation: progressBar 2s linear infinite;
+}

@@ -55,7 +55,6 @@ export default function HomePage() {
               <img 
                 src="/logo.png"
                 alt="Tiki Logo"
-                className="w-32 h-32 mb-8 rounded-full border-2 border-[#C4B5A2]"
               />
               <h1 className="text-4xl md:text-6xl font-bold mb-4">
                 {slide.title}
