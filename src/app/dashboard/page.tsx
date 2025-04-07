@@ -1,39 +1,139 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { 
-  Users, 
-  Calendar, 
-  Clock, 
-  TrendingUp, 
-  DollarSign,
-  AlertCircle,
-  CheckCircle2,
-  Clock8
+  Users, Calendar, Clock, DollarSign,
+  BellRing, Filter
 } from 'lucide-react';
 
-// Données simulées
-const mockReservations = [
-  { date: 'Lundi', reservations: 24 },
-  { date: 'Mardi', reservations: 18 },
-  { date: 'Mercredi', reservations: 32 },
-  { date: 'Jeudi', reservations: 45 },
-  { date: 'Vendredi', reservations: 55 },
-  { date: 'Samedi', reservations: 62 },
-  { date: 'Dimanche', reservations: 42 }
-];
+interface Reservation {
+  id: number;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  numberOfGuests: number;
+  reservationDateTime: string;
+  specialRequests?: string;
+  createdAt: string;
+}
 
-const mockTables = [
-  { id: 1, status: 'occupied', capacity: 4 },
-  { id: 2, status: 'available', capacity: 2 },
-  { id: 3, status: 'reserved', capacity: 6 },
-  { id: 4, status: 'occupied', capacity: 4 },
-  { id: 5, status: 'available', capacity: 8 },
-  { id: 6, status: 'available', capacity: 4 }
+interface Notification {
+  id: number;
+  type: 'urgent' | 'warning';
+  message: string;
+  time: string;
+}
+
+interface StatCardProps {
+  title: string;
+  value: string;
+  icon: React.ReactNode;
+  trend: string;
+}
+
+interface ToolbarProps {
+  selectedPeriod: string;
+  setSelectedPeriod: (period: string) => void;
+  notifications: Notification[];
+  showNotifications: boolean;
+  setShowNotifications: (show: boolean) => void;
+}
+
+const notifications: Notification[] = [
+  {
+    id: 1,
+    type: 'urgent',
+    message: 'Table 3 en attente depuis 30min',
+    time: '2 min'
+  },
+  {
+    id: 2,
+    type: 'warning',
+    message: 'Stock Rhum blanc bas',
+    time: '5 min'
+  }
 ];
 
 export default function AdminDashboard() {
+  const [selectedPeriod, setSelectedPeriod] = useState('jour');
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [stats, setStats] = useState({
+    dailyReservations: '0',
+    availableTables: '0/0',
+    averageWaitTime: '0 min',
+    dailyRevenue: '0€'
+  });
+
+  useEffect(() => {
+    fetchReservations();
+    
+    // Actualiser les réservations toutes les minutes pour mettre à jour l'affichage
+    const intervalId = setInterval(fetchReservations, 60000);
+    
+    // Nettoyer l'intervalle lors du démontage du composant
+    return () => clearInterval(intervalId);
+  }, []);
+
+  const fetchReservations = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/reservations');
+      if (!response.ok) {
+        throw new Error('Erreur lors du chargement des réservations');
+      }
+      const data = await response.json();
+      setReservations(data);
+      
+      // Calculer les statistiques
+      const today = new Date().toISOString().split('T')[0];
+      const dailyReservations = data.filter(
+        (r: Reservation) => r.reservationDateTime.startsWith(today)
+      ).length;
+
+      setStats({
+        dailyReservations: dailyReservations.toString(),
+        availableTables: '12/15', // À remplacer par les vraies données
+        averageWaitTime: '25 min', // À remplacer par les vraies données
+        dailyRevenue: '0€' // À remplacer par les vraies données
+      });
+    } catch (error) {
+      console.error('Erreur lors du chargement des réservations:', error);
+    }
+  };
+
+  // Récupérer les 10 dernières réservations créées
+  const getRecentReservations = () => {
+    // Trier les réservations de la plus récente à la plus ancienne
+    return reservations
+      .filter(reservation => !!reservation.createdAt) // Ignorer celles sans createdAt
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) // Du plus récent au plus ancien
+      .slice(0, 10); // Limiter aux 10 dernières
+  };
+
+  // Préparer les données pour le graphique
+  const chartData = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const dayStr = date.toISOString().split('T')[0];
+    
+    // Filtrer les réservations pour ce jour
+    const dayReservations = reservations.filter(
+      (r: Reservation) => r.reservationDateTime.startsWith(dayStr)
+    );
+
+    // Calculer le nombre total de personnes
+    const totalGuests = dayReservations.reduce(
+      (sum, r) => sum + r.numberOfGuests, 
+      0
+    );
+    
+    return {
+      date: new Date(date).toLocaleDateString('fr-FR', { weekday: 'short' }),
+      guests: totalGuests
+    };
+  }).reverse();
+
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-white">
       {/* En-tête du Dashboard */}
@@ -44,29 +144,37 @@ export default function AdminDashboard() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
+        <Toolbar 
+          selectedPeriod={selectedPeriod}
+          setSelectedPeriod={setSelectedPeriod}
+          notifications={notifications}
+          showNotifications={showNotifications}
+          setShowNotifications={setShowNotifications}
+        />
+        
         {/* Cartes de statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard 
             title="Réservations du jour"
-            value="28"
+            value={stats.dailyReservations}
             icon={<Calendar className="w-6 h-6" />}
             trend="+12%"
           />
           <StatCard 
             title="Tables disponibles"
-            value="8/15"
+            value={stats.availableTables}
             icon={<Users className="w-6 h-6" />}
             trend="-3"
           />
           <StatCard 
             title="Temps d'attente moyen"
-            value="25 min"
+            value={stats.averageWaitTime}
             icon={<Clock className="w-6 h-6" />}
             trend="+5min"
           />
           <StatCard 
             title="Revenu journalier"
-            value="2,450€"
+            value={stats.dailyRevenue}
             icon={<DollarSign className="w-6 h-6" />}
             trend="+18%"
           />
@@ -76,10 +184,10 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Graphique des réservations */}
           <div className="lg:col-span-2 bg-[#2a2a2a] rounded-xl p-6 border border-[#C4B5A2]/30">
-            <h2 className="text-xl font-bold mb-6">Réservations de la semaine</h2>
+            <h2 className="text-xl font-bold mb-6">Nombre de couverts par jour</h2>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={mockReservations}>
+                <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#666" />
                   <XAxis dataKey="date" stroke="#fff" />
                   <YAxis stroke="#fff" />
@@ -89,8 +197,9 @@ export default function AdminDashboard() {
                       border: '1px solid #C4B5A2',
                       borderRadius: '8px'
                     }}
+                    formatter={(value) => [`${value} personnes`, 'Couverts']}
                   />
-                  <Bar dataKey="reservations" fill="#C4B5A2" />
+                  <Bar dataKey="guests" fill="#C4B5A2" name="Couverts" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -100,49 +209,78 @@ export default function AdminDashboard() {
           <div className="bg-[#2a2a2a] rounded-xl p-6 border border-[#C4B5A2]/30">
             <h2 className="text-xl font-bold mb-6">État des tables</h2>
             <div className="space-y-4">
-              {mockTables.map((table) => (
-                <TableStatusCard key={table.id} table={table} />
-              ))}
+              {/* À remplacer par les vraies données des tables */}
             </div>
           </div>
         </div>
 
-        {/* Réservations récentes */}
+        {/* Dernières réservations */}
         <div className="mt-8 bg-[#2a2a2a] rounded-xl p-6 border border-[#C4B5A2]/30">
-          <h2 className="text-xl font-bold mb-6">Réservations récentes</h2>
+          <h2 className="text-xl font-bold mb-6">Dernières réservations (10 plus récentes)</h2>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[#C4B5A2]/30">
                   <th className="text-left py-4">Client</th>
-                  <th className="text-left py-4">Table</th>
-                  <th className="text-left py-4">Heure</th>
+                  <th className="text-left py-4">Date et Heure</th>
                   <th className="text-left py-4">Personnes</th>
-                  <th className="text-left py-4">Statut</th>
+                  <th className="text-left py-4">Contact</th>
+                  <th className="text-left py-4">Reçue il y a</th>
+                  <th className="text-left py-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                <ReservationRow 
-                  name="Martin Dupont"
-                  table="4"
-                  time="19:30"
-                  people="4"
-                  status="confirmed"
-                />
-                <ReservationRow 
-                  name="Sophie Martin"
-                  table="2"
-                  time="20:00"
-                  people="2"
-                  status="pending"
-                />
-                <ReservationRow 
-                  name="Jean Durand"
-                  table="6"
-                  time="19:00"
-                  people="6"
-                  status="arrived"
-                />
+                {getRecentReservations().length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-4 text-center text-gray-400">
+                      Aucune réservation trouvée
+                    </td>
+                  </tr>
+                ) : (
+                  getRecentReservations().map(reservation => {
+                    // Calculer le temps écoulé depuis la création
+                    const now = new Date();
+                    const createdAtDate = new Date(reservation.createdAt);
+                    const minutesElapsed = Math.round((now.getTime() - createdAtDate.getTime()) / 60000);
+                    
+                    return (
+                      <tr key={reservation.id} className="border-b border-[#C4B5A2]/10">
+                        <td className="py-4">{reservation.customerName}</td>
+                        <td className="py-4">
+                          {new Date(reservation.reservationDateTime).toLocaleString('fr-FR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </td>
+                        <td className="py-4">{reservation.numberOfGuests}</td>
+                        <td className="py-4">
+                          <div className="text-sm text-gray-400">
+                            <div>{reservation.customerPhone}</div>
+                            <div>{reservation.customerEmail}</div>
+                          </div>
+                        </td>
+                        <td className="py-4">
+                          <div className="text-sm text-gray-400">
+                            {minutesElapsed < 1 ? "À l'instant" : 
+                             minutesElapsed < 60 ? `Il y a ${minutesElapsed} min` :
+                             minutesElapsed < 1440 ? `Il y a ${Math.floor(minutesElapsed/60)}h${minutesElapsed%60}` :
+                             `Il y a ${Math.floor(minutesElapsed/1440)}j`}
+                          </div>
+                        </td>
+                        <td className="py-4">
+                          <button
+                            onClick={() => window.location.href=`/reservations/${reservation.id}`}
+                            className="px-2 py-1 text-xs rounded bg-blue-500/20 text-blue-500 hover:bg-blue-500/30"
+                          >
+                            Détails
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
@@ -152,87 +290,68 @@ export default function AdminDashboard() {
   );
 }
 
-// Composant Carte Statistique
-function StatCard({ title, value, icon, trend }) {
+function StatCard({ title, value, icon, trend }: StatCardProps) {
   return (
     <div className="bg-[#2a2a2a] rounded-xl p-6 border border-[#C4B5A2]/30">
-      <div className="flex items-center justify-between mb-4">
-        <div className="p-2 bg-[#C4B5A2]/10 rounded-lg">
+      <div className="flex justify-between items-start mb-4">
+        <div className="bg-[#C4B5A2]/20 p-3 rounded-lg">
           {icon}
         </div>
-        <span className={`text-sm ${trend.startsWith('+') ? 'text-green-500' : 'text-red-500'}`}>
-          {trend}
-        </span>
+        <div className="text-sm text-green-500">{trend}</div>
       </div>
-      <h3 className="text-gray-400 text-sm mb-1">{title}</h3>
-      <p className="text-2xl font-bold">{value}</p>
+      <h3 className="text-sm text-gray-400 mb-1">{title}</h3>
+      <p className="text-2xl font-semibold">{value}</p>
     </div>
   );
 }
 
-// Composant État de Table
-function TableStatusCard({ table }) {
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'available': return 'bg-green-500';
-      case 'occupied': return 'bg-red-500';
-      case 'reserved': return 'bg-yellow-500';
-      default: return 'bg-gray-500';
-    }
-  };
-
+function Toolbar({ selectedPeriod, setSelectedPeriod, notifications, showNotifications, setShowNotifications }: ToolbarProps) {
   return (
-    <div className="flex items-center justify-between p-3 bg-[#3a3a3a] rounded-lg">
-      <div className="flex items-center gap-3">
-        <div className={`w-3 h-3 rounded-full ${getStatusColor(table.status)}`} />
-        <span>Table {table.id}</span>
-      </div>
-      <span className="text-gray-400">{table.capacity} places</span>
-    </div>
-  );
-}
-
-// Composant Ligne de Réservation
-function ReservationRow({ name, table, time, people, status }) {
-  const getStatusInfo = (status) => {
-    switch(status) {
-      case 'confirmed':
-        return {
-          icon: <CheckCircle2 className="w-5 h-5 text-green-500" />,
-          text: 'Confirmé'
-        };
-      case 'pending':
-        return {
-          icon: <Clock8 className="w-5 h-5 text-yellow-500" />,
-          text: 'En attente'
-        };
-      case 'arrived':
-        return {
-          icon: <Users className="w-5 h-5 text-blue-500" />,
-          text: 'Arrivé'
-        };
-      default:
-        return {
-          icon: <AlertCircle className="w-5 h-5 text-gray-500" />,
-          text: 'Inconnu'
-        };
-    }
-  };
-
-  const statusInfo = getStatusInfo(status);
-
-  return (
-    <tr className="border-b border-[#C4B5A2]/10">
-      <td className="py-4">{name}</td>
-      <td className="py-4">{table}</td>
-      <td className="py-4">{time}</td>
-      <td className="py-4">{people}</td>
-      <td className="py-4">
-        <div className="flex items-center gap-2">
-          {statusInfo.icon}
-          <span>{statusInfo.text}</span>
+    <div className="flex flex-wrap justify-between items-center mb-8 gap-4">
+      <div className="flex items-center gap-4">
+        <div className="flex rounded-lg border border-[#3a3a3a] overflow-hidden">
+          <button 
+            className={`px-4 py-2 ${selectedPeriod === 'jour' ? 'bg-[#C4B5A2] text-black' : 'bg-[#2a2a2a]'}`}
+            onClick={() => setSelectedPeriod('jour')}
+          >
+            Jour
+          </button>
+          <button 
+            className={`px-4 py-2 ${selectedPeriod === 'semaine' ? 'bg-[#C4B5A2] text-black' : 'bg-[#2a2a2a]'}`}
+            onClick={() => setSelectedPeriod('semaine')}
+          >
+            Semaine
+          </button>
+          <button 
+            className={`px-4 py-2 ${selectedPeriod === 'mois' ? 'bg-[#C4B5A2] text-black' : 'bg-[#2a2a2a]'}`}
+            onClick={() => setSelectedPeriod('mois')}
+          >
+            Mois
+          </button>
         </div>
-      </td>
-    </tr>
+
+        <div className="relative">
+          <button 
+            className="flex items-center gap-2 bg-[#2a2a2a] px-4 py-2 rounded-lg border border-[#3a3a3a]"
+          >
+            <Filter className="w-4 h-4" />
+            <span>Filtres</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="relative">
+        <button 
+          className="relative flex items-center gap-2 bg-[#2a2a2a] px-4 py-2 rounded-lg border border-[#3a3a3a]"
+          onClick={() => setShowNotifications(!showNotifications)}
+        >
+          <BellRing className="w-4 h-4" />
+          <span>Notifications</span>
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+            {notifications.length}
+          </span>
+        </button>
+      </div>
+    </div>
   );
 }

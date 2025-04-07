@@ -1,0 +1,45 @@
+FROM node:20-alpine as builder
+
+WORKDIR /app
+
+# Copier les fichiers de configuration
+COPY backend/package*.json ./
+COPY backend/tsconfig*.json ./
+COPY backend/nest-cli.json ./
+
+# Installer les dépendances
+RUN npm ci
+
+# Copier les sources
+COPY backend/src/ ./src/
+
+# Construire l'application
+RUN npm run build
+
+# Étape finale avec une image plus légère
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copier les fichiers nécessaires depuis l'étape de construction
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+
+# Créer un dossier pour les uploads
+RUN mkdir -p uploads && chmod 777 uploads
+
+# Variables d'environnement
+ENV NODE_ENV=production
+ENV DB_HOST=postgres
+ENV DB_PORT=5432
+ENV DB_USERNAME=postgres
+ENV DB_PASSWORD=postgres
+ENV DB_NAME=tiki_resto
+ENV PORT=3001
+
+# Exposer le port
+EXPOSE 3001
+
+# Commande pour démarrer l'application
+CMD ["npm", "run", "start:prod"] 

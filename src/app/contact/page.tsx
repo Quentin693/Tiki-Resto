@@ -1,9 +1,33 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { Phone, Mail, Clock, MapPin, Send, CheckCircle, X } from "lucide-react";
+import { Phone, Mail, Clock, MapPin, Send, CheckCircle, X, Anchor, Palmtree } from "lucide-react";
 import Image from "next/image";
 import emailjs from "@emailjs/browser";
+
+// Composant GoogleMap
+const GoogleMap = () => (
+  <div className="h-[400px] bg-gray-800 relative">
+    <iframe
+      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2782.6075252015074!2d4.9783531762406425!3d45.77919567900309!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47f4c76abb734dcd%3A0x43c9f1c968fba11b!2sTIKI%20au%20bord%20de%20l&#39;eau!5e0!3m2!1sfr!2sfr!4v1716290171633!5m2!1sfr!2sfr&maptype=hybrid"
+      width="100%"
+      height="100%"
+      style={{ border: 0, filter: 'saturate(1.5) hue-rotate(10deg) brightness(0.95)' }}
+      allowFullScreen={false}
+      loading="lazy"
+      referrerPolicy="no-referrer-when-downgrade"
+    ></iframe>
+    <div className="absolute inset-0 pointer-events-none border-[8px] border-[#C4B5A2]/40 rounded-lg"></div>
+    <div className="absolute bottom-4 left-4 flex space-x-2">
+      <div className="bg-[#C4B5A2]/80 p-2 rounded-full">
+        <Palmtree className="w-5 h-5 text-[#1a1a1a]" />
+      </div>
+      <div className="bg-[#C4B5A2]/80 p-2 rounded-full">
+        <Anchor className="w-5 h-5 text-[#1a1a1a]" />
+      </div>
+    </div>
+  </div>
+);
 
 // Composant Toast
 const Toast = ({ message, type, onClose }) => (
@@ -197,16 +221,10 @@ export default function ContactPage() {
               {/* Colonne de gauche */}
               <div className="space-y-8">
                 <div className="bg-[#2a2a2a]/90 rounded-xl shadow-lg overflow-hidden border border-[#C4B5A2]/20">
-                  <div className="h-[400px] bg-gray-800">
-                    <iframe
-                      src="https://www.google.com/maps/embed?pb=VOTRE_CLE_MAPS"
-                      width="100%"
-                      height="100%"
-                      style={{ border: 0 }}
-                      allowFullScreen=""
-                      loading="lazy"
-                    ></iframe>
-                  </div>
+                  <GoogleMap 
+                    locationName="TIKI au bord de l'eau"
+                    decorative={true}
+                  />
                 </div>
 
                 <div className="bg-[#2a2a2a]/90 rounded-xl p-8 space-y-6 border border-[#C4B5A2]/20 shadow-xl">
@@ -223,12 +241,12 @@ export default function ContactPage() {
                   <ContactInfo
                     icon={<MapPin />}
                     title="Adresse"
-                    info="Chemin du Pontet, 69330 Decines"
+                    info={<span>TIKI au bord de l'eau, Chem. du Pontet, 69150 Décines-Charpieu</span>}
                   />
                   <ContactInfo
                     icon={<Clock />}
                     title="Horaires"
-                    info="Mardi - Dimanche : 12h - 14h30"
+                    info="Lundi - Dimanche : 12h - 14h30 | Jeudi - Samedi : 19h - 22h30"
                   />
                 </div>
               </div>

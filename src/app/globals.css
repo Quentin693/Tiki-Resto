@@ -4,10 +4,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Base styles */
 body {
   @apply bg-gray-100;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
 }
 
+/* Make images responsive by default */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Animations */
 @keyframes progressBar {
   0% {
     transform: translateX(-100%);
@@ -19,4 +31,40 @@ body {
 
 .animate-progressBar {
   animation: progressBar 2s linear infinite;
+}
+
+/* Media queries for better typography on smaller screens */
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+/* Remove tap highlight on mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Improve form elements on mobile */
+input, select, textarea, button {
+  font-size: 16px; /* Prevents zoom on focus in iOS */
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C4B5A2;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a39482;
 }
