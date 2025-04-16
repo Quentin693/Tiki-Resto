@@ -22,6 +22,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/contact", "backend/contexts/AuthContext.js", "src/contexts/AuthContext.js"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/contact", "backend/contexts/AuthContext.tss", "src/contexts/AuthContext.tsx"],
   "exclude": ["node_modules"]
 }

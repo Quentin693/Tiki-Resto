@@ -3,6 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 
 export class CreateReservationDto {
+
   @ApiProperty({ example: 'John Doe', description: 'Nom du client' })
   @IsNotEmpty()
   @IsString()
@@ -38,4 +39,14 @@ export class CreateReservationDto {
   @IsOptional()
   @IsString()
   specialRequests?: string;
+
+  @ApiProperty({ example: 1, description: 'ID de l\'utilisateur', required: false })
+  @IsOptional()
+  @IsNumber()
+  userId?: number;
+
+  @ApiProperty({ example: '2023-04-01T19:30:00Z', description: 'Date et heure de la réservation' })
+  @IsNotEmpty()
+  @IsDateString()
+  createdAt: string;
 } 

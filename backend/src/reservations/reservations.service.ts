@@ -9,7 +9,7 @@ import { UpdateReservationDto } from './dto/update-reservation.dto';
 import { TimeSlotDto, TimeSlotsResponseDto } from './dto/time-slot.dto';
 
 // Définir la capacité maximale du restaurant par créneau
-const MAX_CAPACITY_PER_SLOT = 40;
+const MAX_CAPACITY_PER_SLOT = 30;
 
 @Injectable()
 export class ReservationsService {
@@ -40,7 +40,16 @@ export class ReservationsService {
       });
     };
 
-    const message = `Votre réservation chez le Tiki Au Bord de l'eau pour ${reservation.numberOfGuests} personnes le ${formatDate(reservation.reservationDateTime)} est confirmée ! À bientôt !`;
+    // Générer un lien vers la page d'inscription qui redirigera ensuite vers les réservations
+    const siteUrl = this.configService.get('FRONTEND_URL') || 'https://tikiaureunion.fr';
+    const signupLink = `${siteUrl}/signup?redirect=mes-reservations&email=${encodeURIComponent(reservation.customerEmail)}`;
+    
+    // Message avec lien d'inscription pour gérer la réservation
+    const message = `Votre réservation chez le Tiki Au Bord de l'eau pour ${reservation.numberOfGuests} personnes le ${formatDate(reservation.reservationDateTime)} est confirmée ! 
+    
+Pour modifier ou annuler votre réservation, créez un compte avec ce lien: ${signupLink}
+    
+À bientôt !`;
 
     try {
       const phoneNumber = reservation.customerPhone.startsWith('0') 
@@ -177,6 +186,54 @@ export class ReservationsService {
         reservationDateTime: 'ASC'
       }
     });
+  }
+
+  async findByUserId(userId: number): Promise<Reservation[]> {
+    console.log(`Service: Recherche des réservations pour l'utilisateur ID: ${userId}`);
+    const reservations = await this.reservationsRepository.find({
+      where: { userId },
+      order: { reservationDateTime: 'ASC' }
+    });
+
+    if (reservations.length === 0) {
+      console.log(`Service: Aucune réservation trouvée pour l'utilisateur ID: ${userId}`);
+    } else {
+      console.log(`Service: ${reservations.length} réservations trouvées pour l'utilisateur ID: ${userId}`);
+    }
+
+    return reservations;
+  }
+
+  async findByContact(email?: string, phone?: string): Promise<Reservation[]> {
+    console.log(`Service: Recherche des réservations par contact: Email=${email}, Téléphone=${phone}`);
+    
+    // Construire la requête en fonction des paramètres fournis
+    let query = {};
+    
+    if (email && phone) {
+      // Si les deux sont fournis, chercher l'un ou l'autre
+      query = [
+        { customerEmail: email },
+        { customerPhone: phone }
+      ];
+    } else if (email) {
+      query = { customerEmail: email };
+    } else if (phone) {
+      query = { customerPhone: phone };
+    }
+    
+    const reservations = await this.reservationsRepository.find({
+      where: query,
+      order: { reservationDateTime: 'ASC' }
+    });
+    
+    if (reservations.length === 0) {
+      console.log(`Service: Aucune réservation trouvée pour Email=${email}, Téléphone=${phone}`);
+    } else {
+      console.log(`Service: ${reservations.length} réservations trouvées pour Email=${email}, Téléphone=${phone}`);
+    }
+    
+    return reservations;
   }
 
   async findOne(id: number): Promise<Reservation> {

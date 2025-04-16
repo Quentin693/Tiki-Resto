@@ -260,7 +260,7 @@ export default function Menu() {
               bg-[#2a2a2a] rounded-xl p-8 border-2
               ${menu.highlight 
                 ? 'border-[#C4B5A2] shadow-lg shadow-[#C4B5A2]/10' 
-                : 'border-gray-800'
+                : 'border-[#736655]'
               }
             `}
           >

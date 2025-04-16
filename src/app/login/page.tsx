@@ -1,29 +1,35 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import Image from 'next/image';
-import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Phone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 
 export default function AuthPage() {
   const router = useRouter();
-  const { login, register } = useAuth();
+  const { user, login, register, error, isLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    phoneNumber: ''
   });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
+  // Rediriger si déjà connecté
+  useEffect(() => {
+    if (user) {
+      router.push('/');
+    }
+  }, [user, router]);
 
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
     try {
       if (!isLogin && formData.password !== formData.confirmPassword) {
         toast.error("Les mots de passe ne correspondent pas");
@@ -34,23 +40,27 @@ export default function AuthPage() {
       if (isLogin) {
         success = await login(formData.email, formData.password);
       } else {
-        success = await register(formData.name, formData.email, formData.password);
+        success = await register(
+          formData.name, 
+          formData.email, 
+          formData.password,
+          formData.phoneNumber
+        );
       }
 
       if (success) {
         toast.success(isLogin ? 'Connexion réussie!' : 'Inscription réussie!');
-        router.push('/');
+        // La redirection se fera automatiquement via l'effet useEffect ci-dessus
       } else {
-        toast.error(isLogin ? 'Échec de la connexion' : "Échec de l'inscription");
+        toast.error(error || (isLogin ? 'Échec de la connexion' : "Échec de l'inscription"));
       }
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setIsLoading(false);
+    } catch (err: unknown) {
+      const error = err as Error;
+      toast.error(error.message || 'Une erreur est survenue');
     }
   };
 
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -98,7 +108,7 @@ export default function AuthPage() {
                 <div className="text-center p-8 bg-[#C4B5A2]">
                   <div className="relative w-24 h-24 mx-auto mb-4">
                     <Image
-                      src="/logo.png"
+                      src="/logos/TikiLogo.png"
                       alt="Au Tiki Logo"
                       width={96}
                       height={96}
@@ -112,23 +122,43 @@ export default function AuthPage() {
                 <div className="p-8">
                   <form onSubmit={handleSubmit} className="space-y-6">
                     {!isLogin && (
-                      <div>
-                        <label className="block text-sm font-medium text-white mb-2">
-                          Nom complet
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            name="name"
-                            value={formData.name}
-                            onChange={handleChange}
-                            className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#C4B5A2]/30 rounded-lg focus:ring-2 focus:ring-[#C4B5A2] focus:border-transparent text-white pl-12"
-                            placeholder="John Doe"
-                            required
-                          />
-                          <User className="absolute left-4 top-3.5 h-5 w-5 text-[#C4B5A2]" />
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-white mb-2">
+                            Nom complet
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              name="name"
+                              value={formData.name}
+                              onChange={handleChange}
+                              className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#C4B5A2]/30 rounded-lg focus:ring-2 focus:ring-[#C4B5A2] focus:border-transparent text-white pl-12"
+                              placeholder="John Doe"
+                              required
+                            />
+                            <User className="absolute left-4 top-3.5 h-5 w-5 text-[#C4B5A2]" />
+                          </div>
                         </div>
-                      </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-white mb-2">
+                            Numéro de téléphone
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="tel"
+                              name="phoneNumber"
+                              value={formData.phoneNumber}
+                              onChange={handleChange}
+                              className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#C4B5A2]/30 rounded-lg focus:ring-2 focus:ring-[#C4B5A2] focus:border-transparent text-white pl-12"
+                              placeholder="06 12 34 56 78"
+                              required
+                            />
+                            <Phone className="absolute left-4 top-3.5 h-5 w-5 text-[#C4B5A2]" />
+                          </div>
+                        </div>
+                      </>
                     )}
 
                     <div>

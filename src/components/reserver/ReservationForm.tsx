@@ -1,7 +1,8 @@
 "use client"
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Phone, Mail, User, MessageSquare } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ReservationFormProps {
   formData: {
@@ -26,6 +27,34 @@ export default function ReservationForm({
   isSubmitting,
   error
 }: ReservationFormProps) {
+  const { user, isAuthenticated } = useAuth();
+
+  // Préremplir les champs si l'utilisateur est connecté
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      // Créer un événement synthétique pour chaque champ à préremplir
+      const fields = {
+        customerName: user.name || '',
+        customerEmail: user.email || '',
+        customerPhone: user.phoneNumber || ''
+      };
+
+      // On ne prérempli que si les champs sont vides
+      Object.entries(fields).forEach(([fieldName, fieldValue]) => {
+        if (fieldValue && !formData[fieldName as keyof typeof formData]) {
+          const syntheticEvent = {
+            target: {
+              name: fieldName,
+              value: fieldValue
+            }
+          } as React.ChangeEvent<HTMLInputElement>;
+          
+          handleInputChange(syntheticEvent);
+        }
+      });
+    }
+  }, [isAuthenticated, user, handleInputChange, formData]);
+
   return (
     <div className="bg-[#2a2a2a] rounded-xl p-4 sm:p-6 md:p-8 mt-4 sm:mt-6 mb-4 sm:mb-6 border border-[#C4B5A2]/30">
       <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">Vos coordonnées</h3>
@@ -78,7 +107,7 @@ export default function ReservationForm({
               value={formData.customerPhone}
               onChange={handleInputChange}
               required
-              placeholder="Téléphone (06 XX XX XX XX)"
+              placeholder="Téléphone"
               className="pl-9 sm:pl-10 w-full p-2.5 sm:p-3 bg-[#1A1A1A] rounded-lg border border-[#C4B5A2]/30 focus:outline-none focus:border-[#C4B5A2] text-sm sm:text-base"
             />
           </div>

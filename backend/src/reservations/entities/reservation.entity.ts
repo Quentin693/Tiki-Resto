@@ -32,10 +32,14 @@ export class Reservation {
   specialRequests: string;
 
   @ApiProperty({ example: '2023-03-25T10:30:00Z', description: 'Date de création de la réservation' })
-  @CreateDateColumn()
-  createdAt: Date;
+  @CreateDateColumn({ name: 'created_at' })
+  created_at: Date;
 
   @ApiProperty({ example: '2023-03-25T10:30:00Z', description: 'Date de dernière mise à jour de la réservation' })
-  @UpdateDateColumn()
-  updatedAt: Date;
+  @UpdateDateColumn({ name: 'updated_at' })
+  updated_at: Date;
+
+  @ApiProperty({ example: 1, description: 'ID de l\'utilisateur', required: false })
+  @Column({ nullable: true })
+  userId: number;
 } 

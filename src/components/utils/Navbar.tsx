@@ -41,9 +41,9 @@ const LoadingScreen = () => {
 
       {/* Contenu du loading */}
       <div className="relative z-10 h-full flex flex-col items-center justify-center">
-        <div className="relative w-24 sm:w-32 h-24 sm:h-32 mb-6 sm:mb-8 animate-bounce">
+        <div className="relative w-60 sm:w-60 h-80 sm:h-80 mb-6 sm:mb-8 animate-bounce">
           <Image
-            src="/logo.png"
+            src="/logos/TikiLogo.png"
             alt="Tiki Logo"
             fill
             className="object-contain"
@@ -74,7 +74,7 @@ function NavLink({ href, children, active, mobile, onClick, isAdmin }: NavLinkPr
       onClick={onClick}
       className={`
         relative px-2 py-1 font-normal transition-colors whitespace-nowrap
-        ${mobile ? 'text-base sm:text-xl' : isAdmin ? 'text-sm sm:text-lg' : 'text-xs sm:text-sm xl:text-base'}
+        ${mobile ? 'text-base sm:text-xl' : 'text-sm sm:text-lg'}
         ${active 
           ? 'text-[#C4B5A2]' 
           : 'text-white/80 hover:text-[#C4B5A2]'
@@ -114,16 +114,15 @@ export default function Navbar() {
   const handleLogout = async () => {
     setIsLoading(true);
     await logout();
-    console.log("Logout effectué, redirection dans 3 secondes");
     setTimeout(() => {
       router.push('/');
       setIsLoading(false);
     }, 3000);
   };
-
-  // Définition des liens de navigation avec log
-  const isAdmin = user?.role === 'admin';
-
+  
+  const isAdmin = user?.role?.toLowerCase() === 'admin';
+  const isUser = user?.role?.toLowerCase() === 'user';
+  
   const navLinks = isAdmin
     ? [
         { href: '/menu', label: 'Menu' },
@@ -131,18 +130,26 @@ export default function Navbar() {
         { href: '/gallery', label: 'Galerie' },
         { href: '/equipe', label: 'Notre Equipe' },
         { href: '/dashboard', label: 'Dashboard' },
-        // { href: '/schedule', label: 'Emploi du Temps' },s
         { href: '/calendar', label: 'Calendrier' }
       ]
-    : [
+    : isUser
+      ? [
+          { href: '/menu', label: 'Menu' },
+          { href: '/reserver', label: 'Réserver' },
+          { href: '/mes-reservations', label: 'Mes Réservations' },
+          { href: '/events', label: 'Évènements' },
+          { href: '/gallery', label: 'Galerie' },
+          { href: '/equipe', label: 'Notre Equipe' },
+          { href: '/contact', label: 'Contact' }
+        ]
+      : [
         { href: '/menu', label: 'Menu' },
         { href: '/reserver', label: 'Réserver' },
         { href: '/events', label: 'Évènements' },
         { href: '/gallery', label: 'Galerie' },
         { href: '/equipe', label: 'Notre Equipe' },
         { href: '/contact', label: 'Contact' }
-      ];
-
+        ];
 
   return (
     <>
@@ -150,17 +157,17 @@ export default function Navbar() {
       <div className="fixed w-full z-10 h-20 sm:h-24">
         {/* Background avec effet de flou au scroll - inversé */}
         <div className={`absolute inset-0 transition-all duration-500 ${
-          scrolled ? 'bg-transparent backdrop-blur-none' : 'bg-black/90 backdrop-blur-sm'
+          scrolled ? 'bg-transparent backdrop-blur-none' : 'bg-black/90 backdrop-blur-md'
         }`} />
         
         {/* Conteneur principal */}
-        <div className="relative w-[95%] sm:w-[90%] mx-auto h-16 sm:h-20 mt-2 z-30 rounded-[20px] sm:rounded-[30px] border border-[#2a2a2a]/20 shadow-xl overflow-hidden bg-[#C4B5A2]/50">
+        <div className="relative w-[95%] sm:w-[90%] mx-auto h-16 sm:h-20 mt-2 z-30 rounded-[20px] sm:rounded-[30px] border border-[#2a2a2a]/20 shadow-xl overflow-hidden bg-[#C4B5A2]/80">
           <div className="flex items-center justify-between px-2 sm:px-4 lg:px-6 h-full">
             {/* Logo */}
             <Link href="/" className="relative z-50 flex items-center justify-center h-full">
-              <div className={`relative transform transition-transform hover:scale-110 ${isAdmin ? 'w-16 h-16 sm:w-20 sm:h-20' : 'w-14 h-14 sm:w-16 sm:h-16'}`}>
+              <div className={`relative transform transition-transform hover:scale-110 ${isAdmin ? 'w-14 h-14 sm:w-16 sm:h-16' : 'w-14 h-14 sm:w-16 sm:h-16'}`}>
                 <Image
-                  src="/logo.png"
+                  src="/logos/TikiLogo.png"
                   alt="Au Tiki Logo"
                   fill
                   className="object-contain"
@@ -168,6 +175,11 @@ export default function Navbar() {
                 />
               </div>
             </Link>
+
+            {/* Logo Tiki en version mobile */}
+            <div className="lg:hidden absolute left-1/2 transform -translate-x-1/2">
+              <span className="text-white font-dynapuff text-5xl">TIKI</span>
+            </div>
 
             {/* Navigation Desktop */}
             <div className="hidden lg:flex items-center justify-center flex-1 px-4 sm:px-8">

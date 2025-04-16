@@ -41,7 +41,7 @@ export default function Wines() {
     category: "rouges"
   });
 
-  const categories = {
+  const categories: Record<string, string> = {
     rouges: "Vins Rouges",
     blancs: "Vins Blancs",
     roses: "Vins Rosés",
@@ -58,7 +58,20 @@ export default function Wines() {
       const response = await fetch(`${API_URL}/wines`);
       if (!response.ok) throw new Error('Failed to load wines');
       const data = await response.json();
-      setWines(data);
+      
+      // Trier les vins par prix dans chaque catégorie
+      const sortedData = Object.fromEntries(
+        Object.entries(data).map(([category, wines]) => [
+          category,
+          (wines as Wine[]).sort((a, b) => {
+            const priceA = parseFloat(a.price.bottle.replace('€', '').trim());
+            const priceB = parseFloat(b.price.bottle.replace('€', '').trim());
+            return priceA - priceB;
+          })
+        ])
+      );
+      
+      setWines(sortedData);
       setIsLoading(false);
     } catch (error) {
       console.error('Failed to load wines:', error);
@@ -107,7 +120,7 @@ export default function Wines() {
         throw new Error(errorData.message || 'Failed to update wine');
       }
 
-      await loadWines();
+      await loadWines(); // Ceci rechargera les vins et les triera automatiquement
       setEditingWine({ category: null, index: null });
       toast.success('Vin mis à jour avec succès');
     } catch (error) {
@@ -164,7 +177,7 @@ export default function Wines() {
         throw new Error(errorData.message || 'Failed to add wine');
       }
 
-      await loadWines();
+      await loadWines(); // Ceci rechargera les vins et les triera automatiquement
       setIsAddingWine(false);
       setNewWine({
         name: "",

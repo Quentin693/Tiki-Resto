@@ -278,6 +278,15 @@ export default function Carte() {
     setTouchEnd(0);
   };
 
+  const getImageUrl = (imagePath: string) => {
+    if (!imagePath) return '/images/default-dish.jpg';
+    if (imagePath.startsWith('http')) return imagePath;
+    if (!imagePath.startsWith('/uploads/')) {
+      return `${API_URL}/uploads${imagePath}`;
+    }
+    return `${API_URL}${imagePath}`;
+  };
+
   const renderForm = () => (
     <div className="bg-[#2a2a2a] rounded-xl p-8 border-2 border-[#C4B5A2] mb-8">
       <input
@@ -392,9 +401,7 @@ export default function Carte() {
           <div className="absolute inset-0 bg-black/30 z-10" />
           <div className={`relative h-full transition-transform duration-300 ease-in-out ${isTransitioning ? 'opacity-50' : 'opacity-100'}`}>
             <Image
-              src={menuItems[activeCategory][currentIndex].imagePath.startsWith('http') 
-                ? menuItems[activeCategory][currentIndex].imagePath 
-                : `${API_URL}${menuItems[activeCategory][currentIndex].imagePath}` || '/images/default-dish.jpg'}
+              src={getImageUrl(menuItems[activeCategory][currentIndex].imagePath)}
               alt={menuItems[activeCategory][currentIndex].name}
               fill
               className="object-cover"
@@ -433,11 +440,11 @@ export default function Carte() {
 
         <div className="p-6">
           <div className="flex justify-between items-start mb-2">
-            <h3 className="text-xl font-semibold">
+            <h3 className="text-xl font-semibold flex-1 pr-4">
               {menuItems[activeCategory][currentIndex].name}
             </h3>
-            <span className="text-lg font-bold text-[#C4B5A2]">
-              {menuItems[activeCategory][currentIndex].price} €
+            <span className="text-lg font-bold text-[#C4B5A2] whitespace-nowrap">
+              {Number(menuItems[activeCategory][currentIndex].price).toFixed(2).replace('.', ',')} €
             </span>
           </div>
           <p className="text-gray-400">
@@ -486,9 +493,7 @@ export default function Carte() {
             <div className="relative h-48 overflow-hidden">
               <div className="absolute inset-0 bg-black/30 z-10" />
               <Image
-                src={item.imagePath.startsWith('http') 
-                  ? item.imagePath 
-                  : `${API_URL}${item.imagePath}` || '/images/default-dish.jpg'}
+                src={getImageUrl(item.imagePath)}
                 alt={item.name}
                 fill
                 className="object-cover"
@@ -497,8 +502,8 @@ export default function Carte() {
             </div>
             <div className="p-6">
               <div className="flex justify-between items-start mb-2">
-                <h3 className="text-xl font-semibold">{item.name}</h3>
-                <span className="text-lg font-bold text-[#C4B5A2]">{item.price} €</span>
+                <h3 className="text-xl font-semibold flex-1 pr-4">{item.name}</h3>
+                <span className="text-lg font-bold text-[#C4B5A2] whitespace-nowrap">{Number(item.price).toFixed(2).replace('.', ',')} €</span>
               </div>
               <p className="text-gray-400">{item.description}</p>
               

@@ -33,13 +33,27 @@ interface TimeSlotsProps {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-const MAX_CAPACITY = 40; // Capacité maximale par créneau
+const MAX_CAPACITY = 30; // Capacité maximale par créneau
 
 export default function TimeSlots({ date, time, setFormData, isAdmin = false }: TimeSlotsProps) {
   const [availableSlots, setAvailableSlots] = useState<TimeSlotsResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isClosedDay, setIsClosedDay] = useState<{lunch: boolean, dinner: boolean}>({ lunch: false, dinner: false });
+  const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date());
+
+  // Mettre à jour l'heure actuelle
+  useEffect(() => {
+    // Initialiser avec l'heure actuelle
+    setCurrentDateTime(new Date());
+    
+    // Mettre à jour l'heure toutes les minutes
+    const interval = setInterval(() => {
+      setCurrentDateTime(new Date());
+    }, 60000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // Vérifier si le restaurant est ouvert à la date sélectionnée
   useEffect(() => {
@@ -87,6 +101,38 @@ export default function TimeSlots({ date, time, setFormData, isAdmin = false }: 
     fetchAvailableSlots();
   }, [date]);
 
+  // Fonction pour déterminer si un créneau est passé
+  const isTimeSlotPassed = (slotTime: string): boolean => {
+    // Si la date est dans le passé, tous les créneaux sont passés
+    const [year, month, day] = date.split('-').map(Number);
+    const slotDate = new Date(year, month - 1, day);
+    
+    // Si la date est antérieure à aujourd'hui, tous les créneaux sont passés
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (slotDate < today) {
+      return true;
+    }
+    
+    // Si c'est aujourd'hui, vérifier l'heure
+    if (slotDate.getDate() === today.getDate() && 
+        slotDate.getMonth() === today.getMonth() && 
+        slotDate.getFullYear() === today.getFullYear()) {
+      
+      const [hours, minutes] = slotTime.split(':').map(Number);
+      const slotDateTime = new Date();
+      slotDateTime.setHours(hours, minutes, 0, 0);
+      
+      // Ajouter 15 minutes de marge (pour ne pas réserver un créneau qui commence dans moins de 15 minutes)
+      const currentTimePlus15Min = new Date(currentDateTime);
+      currentTimePlus15Min.setMinutes(currentTimePlus15Min.getMinutes() + 5);
+      
+      return slotDateTime <= currentTimePlus15Min;
+    }
+    
+    return false;
+  };
+
   // Fonction pour déterminer la classe CSS selon la disponibilité
   const getCapacityColorClass = (remainingCapacity: number) => {
     if (remainingCapacity <= 0) return 'text-red-500';
@@ -125,9 +171,20 @@ export default function TimeSlots({ date, time, setFormData, isAdmin = false }: 
     }
     
     if (isAdmin) {
-      return availableSlots.lunch;
+      return availableSlots.lunch.map(slot => ({
+        ...slot,
+        // Pour l'admin, on montre les créneaux passés mais on les marque comme indisponibles
+        available: isTimeSlotPassed(slot.time) ? false : slot.available
+      }));
     } else {
-      return availableSlots.lunch.filter(slot => slot.available);
+      return availableSlots.lunch
+        .filter(slot => slot.available)
+        .map(slot => ({
+          ...slot,
+          // Pour les clients, on filtre les créneaux passés
+          available: !isTimeSlotPassed(slot.time)
+        }))
+        .filter(slot => slot.available); // Filtre final pour ne garder que les disponibles
     }
   };
 
@@ -141,9 +198,20 @@ export default function TimeSlots({ date, time, setFormData, isAdmin = false }: 
     }
     
     if (isAdmin) {
-      return availableSlots.dinner;
+      return availableSlots.dinner.map(slot => ({
+        ...slot,
+        // Pour l'admin, on montre les créneaux passés mais on les marque comme indisponibles
+        available: isTimeSlotPassed(slot.time) ? false : slot.available
+      }));
     } else {
-      return availableSlots.dinner.filter(slot => slot.available);
+      return availableSlots.dinner
+        .filter(slot => slot.available)
+        .map(slot => ({
+          ...slot,
+          // Pour les clients, on filtre les créneaux passés
+          available: !isTimeSlotPassed(slot.time)
+        }))
+        .filter(slot => slot.available); // Filtre final pour ne garder que les disponibles
     }
   };
 
@@ -172,7 +240,9 @@ export default function TimeSlots({ date, time, setFormData, isAdmin = false }: 
                   type="button"
                   onClick={() => {
                     console.log("Clicked lunch slot:", slot);
-                    if ((slot.available || isAdmin) && (!isClosedDay.lunch || isAdmin)) {
+                    // Ne permet la sélection que si le slot est disponible ou en mode admin
+                    // ET si le jour n'est pas fermé, même pour l'admin
+                    if (slot.available && (!isClosedDay.lunch || (isAdmin && !isClosedDay.lunch))) {
                       if (isAdmin) {
                         setFormData(slot.time);
                       } else {
@@ -180,11 +250,14 @@ export default function TimeSlots({ date, time, setFormData, isAdmin = false }: 
                       }
                     }
                   }}
-                  disabled={(!slot.available && !isAdmin) || (isClosedDay.lunch && !isAdmin)}
+                  // Désactive le bouton si:
+                  // - Le slot n'est pas disponible (pour client et admin)
+                  // - Le restaurant est fermé ce jour-là (même pour l'admin)
+                  disabled={!slot.available || isClosedDay.lunch}
                   className={`py-3 px-4 rounded-lg text-center transition-colors ${
                     time === slot.time
                       ? 'bg-[#C4B5A2] text-black font-medium'
-                      : (slot.available && !isClosedDay.lunch) || isAdmin
+                      : (slot.available && !isClosedDay.lunch)
                         ? 'bg-[#1A1A1A] hover:bg-[#2a2a2a] text-white border border-[#C4B5A2]/30'
                         : 'bg-[#1A1A1A] text-gray-500 cursor-not-allowed opacity-50 border border-[#3a3a3a]'
                   }`}
@@ -217,7 +290,9 @@ export default function TimeSlots({ date, time, setFormData, isAdmin = false }: 
                   type="button"
                   onClick={() => {
                     console.log("Clicked dinner slot:", slot);
-                    if ((slot.available || isAdmin) && (!isClosedDay.dinner || isAdmin)) {
+                    // Ne permet la sélection que si le slot est disponible ou en mode admin
+                    // ET si le jour n'est pas fermé, même pour l'admin
+                    if (slot.available && (!isClosedDay.dinner || (isAdmin && !isClosedDay.dinner))) {
                       if (isAdmin) {
                         setFormData(slot.time);
                       } else {
@@ -225,11 +300,14 @@ export default function TimeSlots({ date, time, setFormData, isAdmin = false }: 
                       }
                     }
                   }}
-                  disabled={(!slot.available && !isAdmin) || (isClosedDay.dinner && !isAdmin)}
+                  // Désactive le bouton si:
+                  // - Le slot n'est pas disponible (pour client et admin)
+                  // - Le restaurant est fermé ce jour-là (même pour l'admin)
+                  disabled={!slot.available || isClosedDay.dinner}
                   className={`py-3 px-4 rounded-lg text-center transition-colors ${
                     time === slot.time
                       ? 'bg-[#C4B5A2] text-black font-medium'
-                      : (slot.available && !isClosedDay.dinner) || isAdmin
+                      : (slot.available && !isClosedDay.dinner)
                         ? 'bg-[#1A1A1A] hover:bg-[#2a2a2a] text-white border border-[#C4B5A2]/30'
                         : 'bg-[#1A1A1A] text-gray-500 cursor-not-allowed opacity-50 border border-[#3a3a3a]'
                   }`}

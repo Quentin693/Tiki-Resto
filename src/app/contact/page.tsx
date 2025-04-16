@@ -236,7 +236,7 @@ export default function ContactPage() {
                   <ContactInfo
                     icon={<Mail />}
                     title="Email"
-                    info="contact@autiki.fr"
+                    info="contact@tikilyon.fr"
                   />
                   <ContactInfo
                     icon={<MapPin />}

@@ -49,9 +49,9 @@ export class UploadsController {
       throw new Error('Aucun fichier n\'a été téléchargé');
     }
     
-    // Retourner le chemin relatif de l'image
-    const relativePath = `/images/${file.filename}`;
-    return { imagePath: relativePath };
+    // Retourner le chemin complet de l'image
+    const imagePath = `/uploads/images/${file.filename}`;
+    return { imagePath };
   }
 
   @Get('images/:filename')

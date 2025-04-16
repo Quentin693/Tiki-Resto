@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SimpleCalendarProps {
-  selectedDate: Date;
+  selectedDate: Date | null;
   onChange: (date: Date) => void;
 }
 
@@ -23,7 +23,8 @@ export default function SimpleCalendar({ selectedDate, onChange }: SimpleCalenda
   };
   
   // Formater la date pour l'affichage
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | null) => {
+    if (!date) return "Aucune date sélectionnée";
     return date.toLocaleDateString('fr-FR', {
       day: 'numeric',
       month: 'long',
@@ -85,10 +86,11 @@ export default function SimpleCalendar({ selectedDate, onChange }: SimpleCalenda
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(currentYear, currentMonth, day);
       const isToday = date.getTime() === today.getTime();
-      const isSelected = 
+      const isSelected = selectedDate ? (
         selectedDate.getDate() === day && 
         selectedDate.getMonth() === currentMonth && 
-        selectedDate.getFullYear() === currentYear;
+        selectedDate.getFullYear() === currentYear
+      ) : false;
       const isPast = date < today;
       
       calendar.push(

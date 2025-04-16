@@ -56,7 +56,7 @@ export default function CartePage() {
           <div className="relative max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8">
             {/* En-tête */}
             <div className="text-center mb-10 sm:mb-16">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4">Notre Carte & Menus</h1>
+              <h1 className="font-dynapuff text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold mb-2 md:mb-4">Notre Carte & Menus</h1>
               <div className="w-16 sm:w-24 h-1 bg-[#C4B5A2] mx-auto mb-3 sm:mb-4"></div>
             </div>
 

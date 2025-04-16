@@ -5,6 +5,7 @@ import { Calendar, Clock, Users, MessageSquare, Phone, Mail, MapPin, CheckCircle
 import Image from 'next/image';
 import { toast } from 'react-hot-toast';
 import emailjs from '@emailjs/browser';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Composants
 import GuestSelector from '@/components/reserver/GuestSelector';
@@ -14,11 +15,23 @@ import TimeSlots from '@/components/reserver/TimeSlots';
 import ReservationForm from '@/components/reserver/ReservationForm';
 import LocationMap from '@/components/reserver/LocationMap';
 import ReservationConfirmation from '@/components/reserver/ReservationConfirmation';
-import EventPresentation from '@/components/reserver/EventPresentation';
-import EventForm from '@/components/reserver/EventForm';
-import EventConfirmation from '@/components/reserver/EventConfirmation';
+import EventPresentation from '@/components/reserver/EventReservation/EventPresentation';
+import EventForm from '@/components/reserver/EventReservation/EventForm';
+import EventConfirmation from '@/components/reserver/EventReservation/EventConfirmation';
+
+interface ReservationData {
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  numberOfGuests: number;
+  reservationDateTime: string;
+  specialRequests: string;
+  userId?: number;
+  createdAt: string;
+}
 
 export default function ReservationPage() {
+  const { user, isAuthenticated } = useAuth();
   // Date actuelle pour le calendrier
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
@@ -174,17 +187,21 @@ export default function ReservationPage() {
     }
 
     try {
-      // Combiner la date et l'heure
-      const reservationDateTime = new Date(`${formData.date}T${formData.time}`);
-
-      const reservationData = {
+      // Format attendu par le backend
+      const reservationData: ReservationData = {
         customerName: formData.customerName,
         customerEmail: formData.customerEmail,
-        customerPhone: formData.customerPhone, // On envoie le numéro avec les espaces
+        customerPhone: formData.customerPhone,
         numberOfGuests: numGuests,
-        reservationDateTime: reservationDateTime.toISOString(),
-        specialRequests: formData.specialRequests || undefined,
+        reservationDateTime: new Date(`${formData.date}T${formData.time}`).toISOString(),
+        specialRequests: formData.specialRequests || "",
+        createdAt: new Date().toISOString(),
       };
+
+      // Si l'utilisateur est connecté, associer la réservation à son compte
+      if (isAuthenticated && user) {
+        reservationData.userId = user.id;
+      }
 
       // Ajouter une note pour les grands groupes
       if (numGuests >= 8) {
@@ -193,10 +210,13 @@ export default function ReservationPage() {
           : `[Réservation groupe: ${numGuests} personnes]`;
       }
 
+      console.log('Envoi de la réservation:', reservationData);
+
       const response = await fetch('http://localhost:3001/reservations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(isAuthenticated ? { 'Authorization': `Bearer ${localStorage.getItem('token')}` } : {})
         },
         body: JSON.stringify(reservationData),
       });
@@ -207,6 +227,7 @@ export default function ReservationPage() {
       }
 
       const data = await response.json();
+      console.log('Réservation créée:', data);
       setShowConfirmation(true);
     } catch (err) {
       setError('Une erreur est survenue lors de la réservation. Veuillez réessayer.');
