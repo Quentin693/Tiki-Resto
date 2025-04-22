@@ -240,7 +240,7 @@ export default function HomePage() {
               <div className="text-center mb-20" data-aos="fade-up">
                 <span className="font-allura text-3xl md:text-4xl text-[#e8dcc5]/80">Saveurs de l 'océan</span>
                 <h2 className="font-didot text-5xl sm:text-6xl font-light text-[#e8dcc5] mt-2 mb-6 tracking-wide">
-                  Plateaux de Fruits de Mer
+                  Bar à Fruits de Mer
                 </h2>
                 <div className="w-20 h-[1px] bg-[#e8dcc5]/50 mx-auto"></div>
               </div>
@@ -272,51 +272,81 @@ export default function HomePage() {
                   <h3 className="font-didot text-3xl sm:text-4xl text-[#e8dcc5] mb-6">Une expérience maritime d'exception</h3>
                   
                   <p className="text-gray-300 text-lg leading-relaxed mb-8">
-                    Découvrez nos plateaux de fruits de mer soigneusement composés des produits les plus frais, pêchés chaque jour. Une sélection raffinée qui ravira vos papilles avec l'essence même de l'océan.
+                    Découvrez notre sélection de fruits de mer fraîchement pêchés et soigneusement préparés. Des huîtres fines de claire aux perles de l'impératrice Joël Dupuch, en passant par nos plateaux composés et assiettes dégustation.
                   </p>
                   
                   {/* Plateaux disponibles */}
                   <div className="space-y-6 mb-10">
                     <div className="flex items-center">
                       <div className="h-px w-6 bg-[#e8dcc5]/50 mr-4"></div>
-                      <h4 className="font-didot text-xl text-[#e8dcc5]">Plateaux disponibles</h4>
+                      <h4 className="font-didot text-xl text-[#e8dcc5]">Nos plateaux et assiettes</h4>
                     </div>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {/* Plateau Royal */}
+                      {/* Plateau de l'écaillé */}
                       <div className="bg-[#1a1a1a]/50 border border-[#e8dcc5]/20 p-4 rounded-sm">
                         <div className="flex justify-between items-center mb-2">
-                          <h5 className="font-medium text-[#e8dcc5]">Le Royal</h5>
-                          <span className="text-[#e8dcc5] font-light">75€</span>
+                          <h5 className="font-medium text-[#e8dcc5]">Plateau de l'écaillé</h5>
+                          <span className="text-[#e8dcc5] font-light">49.00€</span>
                         </div>
-                        <p className="text-gray-400 text-sm">Homard, langoustines, crevettes, huîtres, bulots, palourdes, bigorneaux</p>
+                        <p className="text-gray-400 text-sm">12 fines de claire, 6 crevettes roses, bulots 300g</p>
                       </div>
                       
-                      {/* Plateau Dégustation */}
+                      {/* Plateau du pêcheur */}
                       <div className="bg-[#1a1a1a]/50 border border-[#e8dcc5]/20 p-4 rounded-sm">
                         <div className="flex justify-between items-center mb-2">
-                          <h5 className="font-medium text-[#e8dcc5]">Dégustation</h5>
-                          <span className="text-[#e8dcc5] font-light">45€</span>
+                          <h5 className="font-medium text-[#e8dcc5]">Plateau du pêcheur</h5>
+                          <span className="text-[#e8dcc5] font-light">62.00€</span>
                         </div>
-                        <p className="text-gray-400 text-sm">Crevettes, huîtres, bulots, bigorneaux, moules, palourdes</p>
+                        <p className="text-gray-400 text-sm">12 Perles de l'impératrice, 6 crevettes roses, bulots 300g</p>
                       </div>
                       
-                      {/* Plateau Les Essentiels */}
+                      {/* Assiette de l'écaillé */}
                       <div className="bg-[#1a1a1a]/50 border border-[#e8dcc5]/20 p-4 rounded-sm">
                         <div className="flex justify-between items-center mb-2">
-                          <h5 className="font-medium text-[#e8dcc5]">Les Essentiels</h5>
-                          <span className="text-[#e8dcc5] font-light">29€</span>
+                          <h5 className="font-medium text-[#e8dcc5]">Assiette de l'écaillé</h5>
+                          <span className="text-[#e8dcc5] font-light">15.00€</span>
                         </div>
-                        <p className="text-gray-400 text-sm">Huîtres, crevettes, bulots, mayonnaise maison</p>
+                        <p className="text-gray-400 text-sm">3 fines de claire n°3, 3 crevettes roses, bulots 100g</p>
                       </div>
                       
-                      {/* Plateau Sur Mesure */}
+                      {/* Assiette dégustation */}
                       <div className="bg-[#1a1a1a]/50 border border-[#e8dcc5]/20 p-4 rounded-sm">
                         <div className="flex justify-between items-center mb-2">
-                          <h5 className="font-medium text-[#e8dcc5]">Sur Mesure</h5>
-                          <span className="text-[#e8dcc5] font-light">Sur devis</span>
+                          <h5 className="font-medium text-[#e8dcc5]">Assiette dégustation</h5>
+                          <span className="text-[#e8dcc5] font-light">19.00€</span>
                         </div>
-                        <p className="text-gray-400 text-sm">Composez votre plateau selon vos envies</p>
+                        <p className="text-gray-400 text-sm">3 fines de claire n°3, 3 Perles de l'impératrice n°3</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Produits individuels */}
+                  <div className="space-y-5 mb-10">
+                    <div className="flex items-center">
+                      <div className="h-px w-6 bg-[#e8dcc5]/50 mr-4"></div>
+                      <h4 className="font-didot text-xl text-[#e8dcc5]">Produits à l'unité</h4>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 gap-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">Fines de claire</span>
+                        <span className="text-[#e8dcc5]">24.00€ / 12.00€</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">Perles de l'impératrice</span>
+                        <span className="text-[#e8dcc5]">32.00€ / 16.00€</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">Bulots (300g)</span>
+                        <span className="text-[#e8dcc5]">14.00€</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">Bouquet de crevettes (6)</span>
+                        <span className="text-[#e8dcc5]">12.00€</span>
+                      </div>
+                      <div className="text-gray-500 text-xs italic">
+                        Produits sur commande (homard, tourteau, langoustines) disponibles
                       </div>
                     </div>
                   </div>

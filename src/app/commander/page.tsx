@@ -9,40 +9,91 @@ import Link from 'next/link';
 
 const plateaux = [
   {
-    id: 'royal',
-    name: 'Le Royal',
-    price: 75,
-    description: 'Homard, langoustines, crevettes, huîtres, bulots, palourdes, bigorneaux',
+    id: 'plateau-ecaille',
+    name: 'Plateau de l\'écaillé',
+    price: 49.00,
+    description: '12 fines de claire, 6 crevettes roses, bulots 300g',
     image: '/FruitsdeMer.jpg',
     min: 2,
     max: 4
   },
   {
-    id: 'degustation',
-    name: 'Dégustation',
-    price: 45,
-    description: 'Crevettes, huîtres, bulots, bigorneaux, moules, palourdes',
+    id: 'plateau-pecheur',
+    name: 'Plateau du pêcheur',
+    price: 62.00,
+    description: '12 Perles de l\'impératrice, 6 crevettes roses, bulots 300g',
     image: '/seafood-plate.jpg',
-    min: 1,
-    max: 2
+    min: 2,
+    max: 4
   },
   {
-    id: 'essentiels',
-    name: 'Les Essentiels',
-    price: 29,
-    description: 'Huîtres, crevettes, bulots, mayonnaise maison',
+    id: 'assiette-ecaille',
+    name: 'Assiette de l\'écaillé',
+    price: 15.00,
+    description: '3 fines de claire n°3, 3 crevettes roses, bulots 100g',
     image: '/oysters.jpg',
     min: 1,
-    max: 2
+    max: 1
   },
   {
-    id: 'surmesure',
-    name: 'Sur Mesure',
-    price: 0,
-    description: 'Composez votre plateau selon vos envies',
+    id: 'assiette-degustation',
+    name: 'Assiette dégustation',
+    price: 19.00,
+    description: '3 fines de claire n°3, 3 Perles de l\'impératrice n°3',
     image: '/custom-seafood.jpg',
     min: 1,
-    max: 10
+    max: 1
+  }
+];
+
+// Produits individuels
+const produitsIndividuels = [
+  {
+    id: 'bulots',
+    name: 'Bulots (300g)',
+    price: 14.00
+  },
+  {
+    id: 'crevettes',
+    name: 'Bouquet de crevettes (6)',
+    price: 12.00
+  },
+  {
+    id: 'fines',
+    name: 'Fines de claire (12 ou 6)',
+    price: 24.00,
+    halfPrice: 12.00
+  },
+  {
+    id: 'perles',
+    name: 'Perle de l\'impératrice (12 ou 6)',
+    price: 32.00,
+    halfPrice: 16.00,
+    info: 'Spéciale perle de l\'impératrice Joël Dupuch - L\'huître des Petits Mouchoirs'
+  },
+  {
+    id: 'crevette-grise',
+    name: 'Crevette grise fraîches les 100g',
+    price: 12.00,
+    surCommande: true
+  },
+  {
+    id: 'tourteau',
+    name: 'Tourteau entier frais & sa mayonnaise',
+    price: 39.90,
+    surCommande: true
+  },
+  {
+    id: 'homard',
+    name: 'Homard entier frais & sa mayonnaise',
+    price: 71.00,
+    surCommande: true
+  },
+  {
+    id: 'langoustine',
+    name: 'Langoustine fraîche (la pièce)',
+    price: 6.90,
+    surCommande: true
   }
 ];
 
@@ -59,6 +110,9 @@ export default function CommanderPage() {
   const [specialRequests, setSpecialRequests] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // État pour les produits individuels
+  const [selectedItems, setSelectedItems] = useState<{[key: string]: {quantity: number, half?: boolean}}>({});
+  
   // Pour le plateau sur mesure
   const [customItems, setCustomItems] = useState({
     huitres: 0,
@@ -70,6 +124,53 @@ export default function CommanderPage() {
     bigorneaux: 0,
     moules: 0
   });
+  
+  // Ajouter un produit individuel à la commande
+  const addItem = (id: string, half: boolean = false) => {
+    setSelectedItems(prev => {
+      const prevItem = prev[id] || { quantity: 0, half: false };
+      return {
+        ...prev,
+        [id]: { quantity: prevItem.quantity + 1, half: half }
+      };
+    });
+  };
+  
+  // Retirer un produit individuel de la commande
+  const removeItem = (id: string) => {
+    setSelectedItems(prev => {
+      const newItems = { ...prev };
+      if (newItems[id] && newItems[id].quantity > 1) {
+        newItems[id] = { ...newItems[id], quantity: newItems[id].quantity - 1 };
+      } else {
+        delete newItems[id];
+      }
+      return newItems;
+    });
+  };
+  
+  // Basculer entre demi-douzaine et douzaine pour les huîtres
+  const toggleHalfDozens = (id: string) => {
+    setSelectedItems(prev => {
+      if (!prev[id]) return prev;
+      return {
+        ...prev,
+        [id]: { ...prev[id], half: !prev[id].half }
+      };
+    });
+  };
+
+  // Calculer le prix d'un produit individuel
+  const getItemPrice = (id: string, half: boolean = false) => {
+    const item = produitsIndividuels.find(i => i.id === id);
+    if (!item) return 0;
+    
+    if (half && 'halfPrice' in item) {
+      return item.halfPrice;
+    }
+    
+    return item.price;
+  };
   
   // Calculer le prix pour le plateau sur mesure
   const calculateCustomPrice = () => {
@@ -92,16 +193,26 @@ export default function CommanderPage() {
     return total;
   };
   
-  // Calcul du prix total
+  // Calculer le prix total
   const calculateTotal = () => {
-    if (!selectedPlateau) return 0;
+    let total = 0;
     
-    if (selectedPlateau === 'surmesure') {
-      return calculateCustomPrice() * quantity;
+    // Prix des plateaux sélectionnés
+    if (selectedPlateau) {
+      const plateau = plateaux.find(p => p.id === selectedPlateau);
+      total += plateau ? plateau.price * quantity : 0;
     }
     
-    const plateau = plateaux.find(p => p.id === selectedPlateau);
-    return plateau ? plateau.price * quantity : 0;
+    // Prix des produits individuels - en utilisant une approche plus sûre
+    for (const itemId in selectedItems) {
+      const itemDetails = selectedItems[itemId];
+      const isHalf = itemDetails && 'half' in itemDetails ? itemDetails.half : false;
+      const itemQuantity = itemDetails ? itemDetails.quantity : 0;
+      
+      total += getItemPrice(itemId, isHalf) * itemQuantity;
+    }
+    
+    return total;
   };
   
   // Obtenir la date minimale (48h à l'avance)
@@ -114,7 +225,15 @@ export default function CommanderPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedPlateau || !date || !time || !name || !phone) {
+    const hasSelectedPlateau = selectedPlateau !== null;
+    const hasSelectedItems = Object.keys(selectedItems).length > 0;
+    
+    if (!hasSelectedPlateau && !hasSelectedItems) {
+      toast.error('Veuillez sélectionner au moins un produit');
+      return;
+    }
+    
+    if (!date || !time || !name || !phone) {
       toast.error('Veuillez remplir tous les champs obligatoires');
       return;
     }
@@ -122,7 +241,36 @@ export default function CommanderPage() {
     try {
       setIsSubmitting(true);
       
+      // Construction de la commande complète
+      const orderData = {
+        customer: { name, phone, email },
+        plateaux: hasSelectedPlateau ? [{
+          id: selectedPlateau,
+          name: plateaux.find(p => p.id === selectedPlateau)?.name,
+          quantity,
+          price: plateaux.find(p => p.id === selectedPlateau)?.price
+        }] : [],
+        items: Object.entries(selectedItems).map(([id, details]) => {
+          const product = produitsIndividuels.find(p => p.id === id);
+          return {
+            id,
+            name: product?.name,
+            quantity: details.quantity,
+            half: details.half,
+            price: getItemPrice(id, details.half)
+          };
+        }),
+        pickupInfo: {
+          date,
+          time,
+          isPickup
+        },
+        specialRequests,
+        totalPrice: calculateTotal()
+      };
+      
       // Simuler un envoi d'email/API
+      console.log('Commande à envoyer:', orderData);
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       toast.success('Votre commande a été envoyée avec succès');
@@ -190,109 +338,214 @@ export default function CommanderPage() {
 
         <div className="text-center mb-12">
           <span className="font-allura text-3xl md:text-4xl text-[#e8dcc5]/80">Saveurs de l 'océan</span>
-          <h1 className="font-didot text-5xl sm:text-6xl text-[#e8dcc5] mt-2 mb-6">Commandez vos Plateaux</h1>
+          <h1 className="font-didot text-5xl sm:text-6xl text-[#e8dcc5] mt-2 mb-6">Bar à Fruits de Mer</h1>
           <div className="w-24 h-[1px] bg-[#e8dcc5]/50 mx-auto"></div>
           <p className="text-gray-300 max-w-2xl mx-auto mt-6">
-            Réservez vos plateaux de fruits de mer 48h à l'avance pour emporter ou sur place.
+            Réservez vos plateaux et produits de la mer 48h à l'avance pour emporter ou sur place.
             Tous nos produits sont frais et sélectionnés avec soin.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mb-12">
-          {/* Sélection des plateaux - 3 colonnes */}
-          <div className="lg:col-span-3 space-y-6">
-            <h2 className="font-didot text-2xl mb-4 border-b border-[#e8dcc5]/20 pb-2">
-              Choisissez votre plateau
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {plateaux.map((plateau) => (
-                <div 
-                  key={plateau.id}
-                  onClick={() => setSelectedPlateau(plateau.id)}
-                  className={`
-                    cursor-pointer border rounded-lg overflow-hidden transition-all
-                    ${selectedPlateau === plateau.id 
-                      ? 'border-[#e8dcc5] shadow-[0_0_10px_rgba(232,220,197,0.3)]' 
-                      : 'border-[#333] hover:border-[#555]'
-                    }
-                  `}
-                >
-                  <div className="relative h-40">
-                    <Image
-                      src={plateau.image}
-                      alt={plateau.name}
-                      fill
-                      className="object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                    <div className="absolute bottom-2 left-3 right-3 flex justify-between items-end">
-                      <h3 className="text-white font-medium text-lg">{plateau.name}</h3>
-                      <span className="text-[#e8dcc5] font-bold">
-                        {plateau.id === 'surmesure' ? 'Sur devis' : `${plateau.price}€`}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="p-3 bg-[#1a1a1a]">
-                    <p className="text-gray-400 text-sm">{plateau.description}</p>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Pour {plateau.min} {plateau.min > 1 ? 'personnes' : 'personne'}
-                      {plateau.max > plateau.min ? ` à ${plateau.max} personnes` : ''}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            {selectedPlateau === 'surmesure' && (
-              <div className="mt-6 p-4 bg-[#1a1a1a]/50 border border-[#333] rounded-lg">
-                <h3 className="font-didot text-xl mb-4 text-[#e8dcc5]">Composez votre plateau</h3>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {Object.keys(customItems).map((item) => (
-                    <div key={item} className="flex flex-col space-y-2">
-                      <span className="text-sm capitalize">{item}</span>
-                      <div className="flex items-center space-x-2">
-                        <button 
-                          onClick={() => handleDecrement(item)} 
-                          className="w-8 h-8 rounded-full bg-[#333] flex items-center justify-center hover:bg-[#444]"
-                        >
-                          -
-                        </button>
-                        <span className="w-6 text-center">
-                          {customItems[item as keyof typeof customItems]}
+          {/* Sélections - 3 colonnes */}
+          <div className="lg:col-span-3 space-y-8">
+            {/* Nos plateaux */}
+            <div>
+              <h2 className="font-didot text-2xl mb-4 border-b border-[#e8dcc5]/20 pb-2">
+                Nos plateaux
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {plateaux.map((plateau) => (
+                  <div 
+                    key={plateau.id}
+                    onClick={() => {
+                      setSelectedPlateau(plateau.id === selectedPlateau ? null : plateau.id);
+                    }}
+                    className={`
+                      cursor-pointer border rounded-lg overflow-hidden transition-all
+                      ${selectedPlateau === plateau.id 
+                        ? 'border-[#e8dcc5] shadow-[0_0_10px_rgba(232,220,197,0.3)]' 
+                        : 'border-[#333] hover:border-[#555]'
+                      }
+                    `}
+                  >
+                    <div className="relative h-40">
+                      <Image
+                        src={plateau.image}
+                        alt={plateau.name}
+                        fill
+                        className="object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                      <div className="absolute bottom-2 left-3 right-3 flex justify-between items-end">
+                        <h3 className="text-white font-medium text-lg">{plateau.name}</h3>
+                        <span className="text-[#e8dcc5] font-bold">
+                          {plateau.price}€
                         </span>
-                        <button 
-                          onClick={() => handleIncrement(item)} 
-                          className="w-8 h-8 rounded-full bg-[#333] flex items-center justify-center hover:bg-[#444]"
-                        >
-                          +
-                        </button>
                       </div>
                     </div>
+                    <div className="p-3 bg-[#1a1a1a]">
+                      <p className="text-gray-400 text-sm">{plateau.description}</p>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Pour {plateau.min} {plateau.min > 1 ? 'personnes' : 'personne'}
+                        {plateau.max > plateau.min ? ` à ${plateau.max} personnes` : ''}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Produits individuels */}
+            <div>
+              <h2 className="font-didot text-2xl mb-4 border-b border-[#e8dcc5]/20 pb-2">
+                Produits individuels
+              </h2>
+              
+              <div className="space-y-4">
+                {produitsIndividuels.filter(item => !item.surCommande).map((item) => (
+                  <div 
+                    key={item.id}
+                    className="bg-[#1a1a1a]/50 border border-[#333] p-4 rounded"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="text-[#e8dcc5] font-medium">{item.name}</h3>
+                        {item.info && (
+                          <p className="text-gray-400 text-xs mt-1 italic">{item.info}</p>
+                        )}
+                      </div>
+                      <div className="text-[#e8dcc5]">
+                        {'halfPrice' in item ? (
+                          <div className="flex flex-col items-end">
+                            <span>{item.price}€ / {item.halfPrice}€</span>
+                            <span className="text-xs text-gray-400">douzaine / demi-douzaine</span>
+                          </div>
+                        ) : (
+                          <span>{item.price}€</span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {selectedItems[item.id] && (
+                      <div className="mt-3 flex items-center justify-between">
+                        <div className="flex items-center">
+                          {'halfPrice' in item && (
+                            <button
+                              onClick={() => toggleHalfDozens(item.id)}
+                              className="text-xs mr-3 px-2 py-1 rounded bg-[#333] hover:bg-[#444]"
+                            >
+                              {selectedItems[item.id].half ? '6 pièces' : '12 pièces'}
+                            </button>
+                          )}
+                          <span className="text-gray-300">
+                            {selectedItems[item.id].quantity} × {selectedItems[item.id].half ? item.halfPrice : item.price}€
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button 
+                            onClick={() => removeItem(item.id)}
+                            className="w-7 h-7 rounded-full bg-[#333] flex items-center justify-center"
+                          >
+                            -
+                          </button>
+                          <span>{selectedItems[item.id].quantity}</span>
+                          <button 
+                            onClick={() => addItem(item.id, selectedItems[item.id].half)}
+                            className="w-7 h-7 rounded-full bg-[#333] flex items-center justify-center"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {!selectedItems[item.id] && (
+                      <div className="mt-3 flex justify-end">
+                        <button
+                          onClick={() => addItem(item.id, 'halfPrice' in item)}
+                          className="px-3 py-1 bg-[#333] hover:bg-[#444] rounded text-white text-sm"
+                        >
+                          Ajouter
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Produits sur commande (2 jours à l'avance) */}
+            <div>
+              <h2 className="font-didot text-2xl mb-4 border-b border-[#e8dcc5]/20 pb-2 flex items-center">
+                <span>Sur commande</span>
+                <span className="text-sm font-normal text-gray-400 ml-3">2 jours à l'avance</span>
+              </h2>
+              
+              <div className="space-y-4">
+                {produitsIndividuels.filter(item => item.surCommande).map((item) => (
+                  <div 
+                    key={item.id}
+                    className="bg-[#1a1a1a]/50 border border-[#333] p-4 rounded"
+                  >
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-[#e8dcc5] font-medium">{item.name}</h3>
+                      <span className="text-[#e8dcc5]">{item.price}€</span>
+                    </div>
+                    
+                    {selectedItems[item.id] && (
+                      <div className="mt-3 flex items-center justify-between">
+                        <span className="text-gray-300">
+                          {selectedItems[item.id].quantity} × {item.price}€
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          <button 
+                            onClick={() => removeItem(item.id)}
+                            className="w-7 h-7 rounded-full bg-[#333] flex items-center justify-center"
+                          >
+                            -
+                          </button>
+                          <span>{selectedItems[item.id].quantity}</span>
+                          <button 
+                            onClick={() => addItem(item.id)}
+                            className="w-7 h-7 rounded-full bg-[#333] flex items-center justify-center"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {!selectedItems[item.id] && (
+                      <div className="mt-3 flex justify-end">
+                        <button
+                          onClick={() => addItem(item.id)}
+                          className="px-3 py-1 bg-[#333] hover:bg-[#444] rounded text-white text-sm"
+                        >
+                          Ajouter
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {selectedPlateau && (
+              <div className="mt-6">
+                <label className="block text-sm font-medium mb-2">Quantité de plateaux</label>
+                <select
+                  value={quantity}
+                  onChange={(e) => setQuantity(parseInt(e.target.value))}
+                  className="bg-[#1a1a1a] border border-[#333] rounded p-2 w-full focus:outline-none focus:ring-1 focus:ring-[#e8dcc5]"
+                >
+                  {[1, 2, 3, 4, 5].map(num => (
+                    <option key={num} value={num}>{num}</option>
                   ))}
-                </div>
-                
-                <div className="mt-4 text-right">
-                  <p className="text-[#e8dcc5]">
-                    Prix estimé: {calculateCustomPrice().toFixed(2)}€ par plateau
-                  </p>
-                </div>
+                </select>
               </div>
             )}
-            
-            <div className="mt-6">
-              <label className="block text-sm font-medium mb-2">Quantité</label>
-              <select
-                value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value))}
-                className="bg-[#1a1a1a] border border-[#333] rounded p-2 w-full focus:outline-none focus:ring-1 focus:ring-[#e8dcc5]"
-              >
-                {[1, 2, 3, 4, 5].map(num => (
-                  <option key={num} value={num}>{num}</option>
-                ))}
-              </select>
-            </div>
           </div>
           
           {/* Formulaire de commande - 2 colonnes */}
@@ -439,12 +692,12 @@ export default function CommanderPage() {
                   
                   <button
                     type="submit"
-                    disabled={isSubmitting || !selectedPlateau}
+                    disabled={isSubmitting || (selectedPlateau === null && Object.keys(selectedItems).length === 0)}
                     className={`
                       w-full py-3 rounded text-center font-medium transition-colors
                       ${isSubmitting 
                         ? 'bg-[#555] cursor-not-allowed' 
-                        : selectedPlateau 
+                        : (selectedPlateau !== null || Object.keys(selectedItems).length > 0)
                           ? 'bg-[#e8dcc5] text-[#0f0f0f] hover:bg-[#d1c5b0]' 
                           : 'bg-[#333] cursor-not-allowed'
                       }

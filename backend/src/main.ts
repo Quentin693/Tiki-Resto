@@ -12,7 +12,7 @@ async function bootstrap() {
   
   // Configuration CORS
   app.enableCors({
-    origin: ['http://localhost:3000', 'https://tikirestaurant.com'],
+    origin: process.env.FRONTEND_URL || 'https://tikilyon.vercel.app' || 'http://localhost:3000',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
     allowedHeaders: 'Content-Type, Accept, Authorization',
