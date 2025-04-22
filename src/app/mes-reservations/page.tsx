@@ -58,6 +58,7 @@ export default function MesReservationsPage() {
   
   // Nouvel état pour la confirmation de suppression
   const [confirmingDelete, setConfirmingDelete] = useState<number | null>(null);
+  const [sendNotification, setSendNotification] = useState(true);
 
   useEffect(() => {
     // Rediriger vers la page de connexion si l'utilisateur n'est pas connecté
@@ -300,7 +301,8 @@ export default function MesReservationsPage() {
         date: editFormData.date,
         time: editFormData.time,
         guests: editFormData.guests,
-        specialRequests: editFormData.specialRequests
+        specialRequests: editFormData.specialRequests,
+        sendSms: sendNotification // Ajouter l'option pour envoyer un SMS
       };
       
       const response = await fetch(`/api/reservations/${editingReservation.id}`, {
@@ -359,16 +361,15 @@ export default function MesReservationsPage() {
         return;
       }
       
-      // Utiliser directement l'API backend
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/reservations/${reservationId}`;
-      console.log('URL de la requête:', apiUrl);
-      
-      const response = await fetch(apiUrl, {
+      // Utiliser l'API locale au lieu d'appeler directement le backend
+      const response = await fetch(`/api/reservations/${reservationId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${tokenToUse}`
-        }
+        },
+        // Inclure sendSms dans le corps de la requête DELETE
+        body: JSON.stringify({ sendSms: sendNotification })
       });
       
       console.log("Réponse reçue, statut:", response.status);
@@ -431,6 +432,38 @@ export default function MesReservationsPage() {
     return new Date(dateString).toLocaleDateString('fr-FR', options);
   };
 
+  // Fonction pour filtrer les réservations passées
+  const filterPastReservations = (reservations: Reservation[]) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Réinitialise l'heure à minuit pour comparer uniquement les dates
+    
+    return reservations.filter(reservation => {
+      const reservationDate = new Date(reservation.date);
+      
+      // Si la date est antérieure à aujourd'hui, c'est une réservation passée
+      if (reservationDate < today) {
+        return false;
+      }
+      
+      // Si c'est aujourd'hui, vérifier l'heure
+      if (reservationDate.getDate() === today.getDate() &&
+          reservationDate.getMonth() === today.getMonth() &&
+          reservationDate.getFullYear() === today.getFullYear()) {
+        
+        // Comparer l'heure actuelle avec l'heure de la réservation
+        const now = new Date();
+        const [hours, minutes] = reservation.time.split(':').map(Number);
+        
+        // Si l'heure de la réservation est passée, ne pas l'afficher
+        if (hours < now.getHours() || (hours === now.getHours() && minutes < now.getMinutes())) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-[#141414]">
@@ -442,8 +475,9 @@ export default function MesReservationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#141414] text-white">
-      <div className="absolute inset-0 flex">
+    <div className="min-h-screen bg-[#0f0f0f] text-white relative">
+      {/* Background avec feuilles - limité à la zone principale */}
+      <div className="absolute inset-0 flex z-0 overflow-hidden pointer-events-none">
         {/* Décoration gauche */}
         <div className="w-[15%] sm:w-[20%] md:w-[25%] relative">
           <Image
@@ -452,11 +486,11 @@ export default function MesReservationsPage() {
             fill
             className="object-cover opacity-20"
           />
-          <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-r from-transparent to-[#141414]" />
+          <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-r from-transparent to-[#0f0f0f]" />
         </div>
 
         {/* Zone centrale */}
-        <div className="flex-grow bg-[#141414]" />
+        <div className="flex-grow bg-[#0f0f0f]" />
 
         {/* Décoration droite */}
         <div className="w-[15%] sm:w-[20%] md:w-[25%] relative">
@@ -466,14 +500,14 @@ export default function MesReservationsPage() {
             fill
             className="object-cover opacity-20"
           />
-          <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-l from-transparent to-[#141414]" />
+          <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-l from-transparent to-[#0f0f0f]" />
         </div>
       </div>
 
       {/* Contenu principal */}
-      <div className="relative py-16 md:py-24">
+      <div className="relative z-10 pt-24 sm:pt-28 pb-24">
         <div className="container mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <h1 className="text-4xl font-bold text-center text-[#C4B5A2] mb-12">Mes Réservations</h1>
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-didot text-center text-[#C4B5A2] mb-12">Mes Réservations</h1>
           
           {reservations.length === 0 ? (
             <div className="text-center py-12 bg-[#2a2a2a]/50 rounded-xl border border-[#3a3a3a]/50">
@@ -487,45 +521,69 @@ export default function MesReservationsPage() {
               </button>
             </div>
           ) : (
-            <div className="grid gap-6 md:gap-8">
-              {reservations.map((reservation) => (
-                <div 
-                  key={reservation.id} 
-                  className="bg-[#2a2a2a]/50 rounded-xl border border-[#3a3a3a]/50 p-6 flex flex-col md:flex-row md:items-center justify-between"
-                >
-                  <div className="flex-grow mb-4 md:mb-0">
-                    <div className="flex items-center mb-2">
-                      <span className="text-[#C4B5A2] text-xl font-semibold">{formatDate(reservation.date)}</span>
-                      <span className="ml-2 px-2 py-1 bg-[#C4B5A2]/20 rounded text-sm text-[#C4B5A2]">
-                        {reservation.time}
-                      </span>
+            <>
+              {/* Filtrer les réservations passées */}
+              {(() => {
+                const activeReservations = filterPastReservations(reservations);
+                
+                if (activeReservations.length === 0) {
+                  return (
+                    <div className="text-center py-12 bg-[#2a2a2a]/50 rounded-xl border border-[#3a3a3a]/50">
+                      <h2 className="text-2xl font-medium text-gray-300 mb-4">Vous n'avez pas de réservations à venir</h2>
+                      <p className="text-gray-400 mb-6">Réservez une table dès maintenant pour profiter de notre cuisine exotique !</p>
+                      <button 
+                        onClick={() => router.push('/reserver')}
+                        className="bg-[#C4B5A2] hover:bg-[#A69783] text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                      >
+                        Faire une réservation
+                      </button>
                     </div>
-                    <p className="text-gray-300">
-                      <span className="font-medium">{reservation.guests}</span> {reservation.guests > 1 ? 'personnes' : 'personne'}
-                    </p>
-                    {reservation.specialRequests && (
-                      <p className="text-gray-400 mt-2 text-sm">
-                        <span className="font-medium">Demandes spéciales :</span> {reservation.specialRequests}
-                      </p>
-                    )}
+                  );
+                }
+                
+                return (
+                  <div className="grid gap-6 md:gap-8">
+                    {activeReservations.map((reservation) => (
+                      <div 
+                        key={reservation.id} 
+                        className="bg-[#2a2a2a]/50 rounded-xl border border-[#3a3a3a]/50 p-6 flex flex-col md:flex-row md:items-center justify-between"
+                      >
+                        <div className="flex-grow mb-4 md:mb-0">
+                          <div className="flex items-center mb-2">
+                            <span className="text-[#C4B5A2] text-xl font-semibold">{formatDate(reservation.date)}</span>
+                            <span className="ml-2 px-2 py-1 bg-[#C4B5A2]/20 rounded text-sm text-[#C4B5A2]">
+                              {reservation.time}
+                            </span>
+                          </div>
+                          <p className="text-gray-300">
+                            <span className="font-medium">{reservation.guests}</span> {reservation.guests > 1 ? 'personnes' : 'personne'}
+                          </p>
+                          {reservation.specialRequests && (
+                            <p className="text-gray-400 mt-2 text-sm">
+                              <span className="font-medium">Demandes spéciales :</span> {reservation.specialRequests}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <button
+                            onClick={() => handleEdit(reservation)}
+                            className="px-4 py-2 border border-blue-500/70 text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
+                          >
+                            Modifier
+                          </button>
+                          <button
+                            onClick={() => handleCancel(reservation.id)}
+                            className="px-4 py-2 border border-red-500/70 text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                          >
+                            Annuler
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex items-center space-x-4">
-                    <button
-                      onClick={() => handleEdit(reservation)}
-                      className="px-4 py-2 border border-blue-500/70 text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
-                    >
-                      Modifier
-                    </button>
-                    <button
-                      onClick={() => handleCancel(reservation.id)}
-                      className="px-4 py-2 border border-red-500/70 text-red-400 hover:bg-red-500/10 rounded transition-colors"
-                    >
-                      Annuler
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                );
+              })()}
+            </>
           )}
         </div>
       </div>
@@ -546,6 +604,18 @@ export default function MesReservationsPage() {
             <p className="text-gray-300 mb-6 pl-11">
               Êtes-vous sûr de vouloir annuler cette réservation ? Cette action est irréversible.
             </p>
+            
+            <div className="mb-4 pl-11">
+              <label className="flex items-center text-gray-300">
+                <input 
+                  type="checkbox" 
+                  checked={sendNotification}
+                  onChange={(e) => setSendNotification(e.target.checked)}
+                  className="h-4 w-4 bg-[#3a3a3a] border-[#4a4a4a] rounded mr-2"
+                />
+                M'envoyer un SMS de confirmation
+              </label>
+            </div>
             
             <div className="flex justify-end gap-3 mt-6">
               <button 
@@ -697,6 +767,18 @@ export default function MesReservationsPage() {
                   className="w-full p-2 rounded bg-[#333333] border border-[#4a4a4a] focus:outline-none focus:ring-2 focus:ring-[#C4B5A2] min-h-[100px]"
                   placeholder="Allergies, préférences de table, etc."
                 />
+              </div>
+              
+              <div>
+                <label className="flex items-center text-gray-300">
+                  <input 
+                    type="checkbox" 
+                    checked={sendNotification}
+                    onChange={(e) => setSendNotification(e.target.checked)}
+                    className="h-4 w-4 bg-[#3a3a3a] border-[#4a4a4a] rounded mr-2"
+                  />
+                  M'envoyer un SMS de confirmation
+                </label>
               </div>
               
               <div className="flex justify-between pt-4">

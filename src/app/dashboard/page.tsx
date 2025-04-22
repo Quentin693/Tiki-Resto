@@ -128,7 +128,7 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-[#1a1a1a] text-white">
       {/* En-tête du Dashboard */}
       <div className="bg-[#2a2a2a] border-b border-[#C4B5A2]">
-        <div className="container mx-auto px-4 py-6">
+        <div className="container mt-40 mx-auto px-4 py-6">
           <h1 className="text-2xl font-bold">Dashboard Administrateur</h1>
         </div>
       </div>

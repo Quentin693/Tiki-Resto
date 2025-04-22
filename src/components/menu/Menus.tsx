@@ -166,7 +166,7 @@ export default function Menu() {
   return (
     <section className="mb-20">
       <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold mb-4">Nos Menus</h2>
+        <h2 className="text-4xl font-didot-bold mb-4">Nos Menus</h2>
         <div className="w-24 h-1 bg-[#C4B5A2] mx-auto"></div>
       </div>
 

@@ -98,6 +98,9 @@ export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
+  
+  // Vérifie si on est sur la page d'accueil
+  const isHomePage = pathname === '/';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -136,7 +139,7 @@ export default function Navbar() {
       ? [
           { href: '/menu', label: 'Menu' },
           { href: '/reserver', label: 'Réserver' },
-          { href: '/mes-reservations', label: 'Mes Réservations' },
+          { href: '/mes-reservations', label: 'Réservations' },
           { href: '/events', label: 'Évènements' },
           { href: '/gallery', label: 'Galerie' },
           { href: '/equipe', label: 'Notre Equipe' },
@@ -154,23 +157,25 @@ export default function Navbar() {
   return (
     <>
       {isLoading && <LoadingScreen />}
-      <div className="fixed w-full z-10 h-20 sm:h-24">
-        {/* Background avec effet de flou au scroll - inversé */}
-        <div className={`absolute inset-0 transition-all duration-500 ${
-          scrolled ? 'bg-transparent backdrop-blur-none' : 'bg-black/90 backdrop-blur-md'
-        }`} />
-        
-        {/* Conteneur principal */}
-        <div className="relative w-[95%] sm:w-[90%] mx-auto h-16 sm:h-20 mt-2 z-30 rounded-[20px] sm:rounded-[30px] border border-[#2a2a2a]/20 shadow-xl overflow-hidden bg-[#C4B5A2]/80">
+      <div className="fixed top-0 left-0 right-0 w-full z-[100]">
+        {/* Conteneur principal - le seul élément visible de la navbar */}
+        <div className={`
+          relative w-[95%] sm:w-[90%] mx-auto h-16 sm:h-20 mt-2 z-30 
+          rounded-[20px] sm:rounded-[30px] 
+          border border-[#C4B5A2]/20 
+          shadow-xl overflow-hidden 
+          transition-all duration-500 ease-in-out
+          ${scrolled ? 'bg-[#C4B5A2]/80 backdrop-blur-sm' : 'bg-[#C4B5A2]/65'}
+        `}>
           <div className="flex items-center justify-between px-2 sm:px-4 lg:px-6 h-full">
             {/* Logo */}
             <Link href="/" className="relative z-50 flex items-center justify-center h-full">
-              <div className={`relative transform transition-transform hover:scale-110 ${isAdmin ? 'w-14 h-14 sm:w-16 sm:h-16' : 'w-14 h-14 sm:w-16 sm:h-16'}`}>
+              <div className={`relative transform transition-all duration-300 hover:scale-110 ${isAdmin ? 'w-14 h-14 sm:w-16 sm:h-16' : 'w-14 h-14 sm:w-16 sm:h-16'}`}>
                 <Image
                   src="/logos/TikiLogo.png"
                   alt="Au Tiki Logo"
                   fill
-                  className="object-contain"
+                  className="object-contain drop-shadow-md"
                   priority
                 />
               </div>
@@ -178,12 +183,12 @@ export default function Navbar() {
 
             {/* Logo Tiki en version mobile */}
             <div className="lg:hidden absolute left-1/2 transform -translate-x-1/2">
-              <span className="text-white font-dynapuff text-5xl">TIKI</span>
+              <span className="text-white font-didot text-5xl mt-6 tracking-wider drop-shadow-sm">TIKI</span>
             </div>
 
             {/* Navigation Desktop */}
             <div className="hidden lg:flex items-center justify-center flex-1 px-4 sm:px-8">
-              <div className={`flex items-center ${isAdmin ? 'space-x-3 xl:space-x-8' : 'space-x-2 xl:space-x-8'} overflow-x-auto`}>
+              <div className={`flex items-center ${isAdmin ? 'space-x-3 xl:space-x-8' : 'space-x-4 xl:space-x-10'} overflow-x-auto`}>
                 {navLinks.map(({ href, label }) => (
                   <NavLink 
                     key={href} 
@@ -201,27 +206,33 @@ export default function Navbar() {
             <div className="flex items-center space-x-1 sm:space-x-4">
               {user ? (
                 <div className="flex items-center space-x-1 sm:space-x-4">
-                  <span className={`text-[#C4B5A2] hidden lg:block ${isAdmin ? 'text-sm lg:text-lg' : 'text-xs sm:text-sm xl:text-base'}`}>
+                  <span className={`text-[#2a2a2a] hidden lg:block font-medium ${isAdmin ? 'text-sm lg:text-lg' : 'text-xs sm:text-sm xl:text-base'}`}>
                     {user.name}
                   </span>
                   <button
                     onClick={handleLogout}
-                    className={`text-[#C4B5A2] hover:text-white transition-colors hidden lg:block px-2 py-1 sm:px-3 sm:py-1.5 rounded-2xl border bg-[#2a2a2a] border-[#2a2a2a]/20 hover:border-[#2a2a2a]/50 ${isAdmin ? 'text-sm lg:text-lg lg:px-6 lg:py-2' : 'text-xs sm:text-sm xl:px-4 xl:py-2 xl:text-base'}`}
+                    className={`
+                      text-white hover:text-white/90 transition-all duration-300
+                      hidden lg:block px-3 py-1.5 sm:px-4 sm:py-2
+                      rounded-full border bg-[#2a2a2a]/80 hover:bg-[#2a2a2a]
+                      border-[#2a2a2a]/20 hover:border-[#2a2a2a]/50
+                      shadow-sm hover:shadow-md
+                      ${isAdmin ? 'text-sm lg:text-lg lg:px-6 lg:py-2' : 'text-xs sm:text-sm xl:px-5 xl:py-2 xl:text-base'}
+                    `}
                   >
                     Déconnexion
                   </button>
-                  <div className={`relative transition-transform hover:scale-110 ${isAdmin ? 'w-10 h-10 sm:w-12 sm:h-12' : 'w-8 h-8 sm:w-10 sm:h-10'}`}>
-                    <Image
-                      src="/profil.png"
-                      alt={user.name}
-                      fill
-                      className="rounded-full object-cover border-2 border-[#C4B5A2]/50"
-                    />
-                  </div>
                 </div>
               ) : (
                 <Link href="/login" className="flex items-center space-x-1 sm:space-x-4">
-                  <span className="text-[#C4B5A2] hover:text-white transition-colors hidden lg:block px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm xl:px-4 xl:py-2 xl:text-base rounded-2xl border bg-[#2a2a2a] border-[#2a2a2a]/20 hover:border-[#2a2a2a]/50">
+                  <span className={`
+                    text-white hover:text-white/90 transition-all duration-300
+                    hidden lg:block px-3 py-1.5 sm:px-4 sm:py-2
+                    text-xs sm:text-sm xl:px-5 xl:py-2 xl:text-base
+                    rounded-full border bg-[#2a2a2a]/80 hover:bg-[#2a2a2a]
+                    border-[#2a2a2a]/20 hover:border-[#2a2a2a]/50
+                    shadow-sm hover:shadow-md
+                  `}>
                     Se connecter
                   </span>
                 </Link>
@@ -229,19 +240,22 @@ export default function Navbar() {
 
               {/* Burger Menu pour Mobile */}
               <button
-                className="lg:hidden text-[#C4B5A2] hover:text-white transition-colors p-1"
+                className="lg:hidden text-[#e8dcc5] hover:text-[#e8dcc5] transition-colors p-1"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
-                {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
               </button>
             </div>
           </div>
+          
+          {/* Ligne décorative subtile en bas de la navbar */}
+          <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#e8dcc5]/40 to-transparent"></div>
         </div>
 
         {/* Menu Mobile */}
         <div 
           className={`
-            fixed inset-0 bg-[#2a2a2a]/95 backdrop-blur-md transition-transform duration-300 lg:hidden
+            fixed inset-0 bg-[#2a2a2a]/90 backdrop-blur-md transition-transform duration-500 ease-in-out lg:hidden z-[100]
             ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}
           `}
         >
@@ -264,7 +278,7 @@ export default function Navbar() {
                   handleLogout();
                   setIsMenuOpen(false);
                 }}
-                className="text-base sm:text-xl text-[#C4B5A2] hover:text-white transition-colors"
+                className="text-base sm:text-xl text-[#C4B5A2] hover:text-white transition-all duration-300"
               >
                 Déconnexion
               </button>
@@ -272,7 +286,7 @@ export default function Navbar() {
               <Link 
                 href="/login"
                 onClick={() => setIsMenuOpen(false)}
-                className="text-base sm:text-xl text-[#C4B5A2] hover:text-white transition-colors"
+                className="text-base sm:text-xl text-[#C4B5A2] hover:text-white transition-all duration-300"
               >
                 Se connecter
               </Link>
@@ -280,9 +294,6 @@ export default function Navbar() {
           </div>
         </div>
       </div>
-
-      {/* Espace pour éviter que le contenu ne soit caché sous la navbar fixe */}
-      <div className="h-20 sm:h-24" />
     </>
   );
 }

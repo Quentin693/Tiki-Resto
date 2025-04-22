@@ -209,9 +209,9 @@ export default function ContactPage() {
           </div>
 
           {/* Zone de contenu superposée */}
-          <div className="relative max-w-6xl mx-auto px-8 py-8">
+          <div className="relative max-w-6xl mt-40 mx-auto px-8 py-8">
             <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold mb-4">Contactez-nous</h1>
+              <h1 className="text-4xl font-didot-bold mb-4">Contactez-nous</h1>
               <div className="w-24 h-1 bg-[#C4B5A2] mx-auto mb-4"></div>
               <p className="text-gray-300">Nous sommes à votre écoute</p>
             </div>

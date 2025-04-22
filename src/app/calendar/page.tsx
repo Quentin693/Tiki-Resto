@@ -266,7 +266,7 @@ export default function CalendarPage() {
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-white">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mt-40 mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Calendrier des réservations</h1>
           <ExportPhoneButton reservations={reservations} />

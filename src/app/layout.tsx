@@ -1,4 +1,4 @@
-import { Inter } from 'next/font/google'
+import { Inter, Allura } from 'next/font/google'
 import localFont from 'next/font/local'
 import './globals.css'
 import Navbar from '@/components/utils/Navbar'
@@ -7,14 +7,26 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({ subsets: ['latin'] })
+
+const allura = Allura({ 
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-allura',
+})
+
 const pacifico = localFont({ 
   src: './fonts/Pacifico-Regular.ttf',
   variable: '--font-pacifico',
 })
 
 const dynapuff = localFont({
-  src: './fonts/Dynapuff-Regular.ttf',
+  src: './fonts/DynaPuff-Regular.ttf',
   variable: '--font-dynapuff',
+})
+
+const didot = localFont({
+  src: './fonts/Didot Font Family/Didot Title.otf',
+  variable: '--font-didot',
 })
 
 export const metadata = {
@@ -30,7 +42,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr">
-      <body className={`${inter.className} ${pacifico.variable} ${dynapuff.variable}`}>
+      <body className={`${inter.className} ${pacifico.variable} ${dynapuff.variable} ${allura.variable} ${didot.variable} bg-[#0f0f0f]`}>
         <AuthProvider>
           <Toaster />
           <Navbar />

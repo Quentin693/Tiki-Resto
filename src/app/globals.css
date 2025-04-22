@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Allura&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -8,6 +9,8 @@
   --foreground-rgb: 255, 255, 255;
   --background-start-rgb: 0, 0, 0;
   --background-end-rgb: 0, 0, 0;
+  --navbar-height: 5rem; /* 20px pour mobile */
+  --navbar-height-sm: 6rem; /* 24px pour tablette/desktop */
 }
 
 @layer base {
@@ -16,6 +19,28 @@
   }
   .font-dynapuff {
     font-family: var(--font-dynapuff);
+  }
+  .font-allura {
+    font-family: var(--font-allura);
+  }
+  .font-didot {
+    font-family: var(--font-didot);
+  }
+}
+
+/* Style pour que toutes les pages commencent en haut avec la navbar superposée */
+main > div:first-child,
+main > section:first-child {
+  margin-top: calc(-1 * var(--navbar-height));
+  padding-top: var(--navbar-height);
+  min-height: 100vh; /* S'assurer que le contenu remplit au moins la hauteur de l'écran */
+}
+
+@media (min-width: 640px) {
+  main > div:first-child,
+  main > section:first-child {
+    margin-top: calc(-1 * var(--navbar-height-sm));
+    padding-top: var(--navbar-height-sm);
   }
 }
 
@@ -88,4 +113,15 @@ input, select, textarea, button {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #a39482;
+}
+
+/* Assurer que les images et vidéos de fond couvrent tout l'écran */
+.bg-cover {
+  background-size: cover;
+  background-position: center;
+}
+
+/* S'assurer que les conteneurs principaux des pages vont jusqu'en haut */
+.min-h-screen {
+  min-height: 100vh;
 }

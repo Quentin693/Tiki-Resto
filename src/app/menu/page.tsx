@@ -11,7 +11,7 @@ export default function CartePage() {
   const isAdmin = true;
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#141414] text-white relative">
+    <div className="flex flex-col min-h-screen bg-[#0f0f0f] text-white relative">
       {/* Background de base sombre */}
       <div className="fixed inset-0 bg-black/40" />
 
@@ -21,7 +21,7 @@ export default function CartePage() {
           {/* Conteneur des feuilles et du contenu central */}
           <div className="absolute inset-0 flex">
             {/* Feuilles gauches avec une zone de transition */}
-            <div className="w-[150px] sm:w-[250px] md:w-[400px] relative">
+            <div className="w-[15%] sm:w-[20%] md:w-[25%] relative">
               <Image
                 src="/decorations/leavesleft.webp"
                 alt="Décoration gauche"
@@ -30,16 +30,16 @@ export default function CartePage() {
                 priority
               />
               {/* Dégradé de transition */}
-              <div className="absolute inset-y-0 right-0 w-12 sm:w-24 md:w-32 bg-gradient-to-r from-transparent to-[#141414]" />
+              <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-r from-transparent to-[#0f0f0f]" />
             </div>
 
             {/* Zone centrale avec background très sombre */}
-            <div className="flex-grow bg-[#141414]">
+            <div className="flex-grow bg-[#0f0f0f]">
               <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8" />
             </div>
 
             {/* Feuilles droites avec une zone de transition */}
-            <div className="w-[150px] sm:w-[250px] md:w-[400px] relative">
+            <div className="w-[15%] sm:w-[20%] md:w-[25%] relative">
               <Image
                 src="/decorations/leavesright.webp"
                 alt="Décoration droite"
@@ -48,15 +48,15 @@ export default function CartePage() {
                 priority
               />
               {/* Dégradé de transition */}
-              <div className="absolute inset-y-0 left-0 w-12 sm:w-24 md:w-32 bg-gradient-to-l from-transparent to-[#141414]" />
+              <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-l from-transparent to-[#0f0f0f]" />
             </div>
           </div>
 
           {/* Zone de contenu superposée */}
-          <div className="relative max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8">
+          <div className="relative max-w-6xl mt-40 mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8">
             {/* En-tête */}
             <div className="text-center mb-10 sm:mb-16">
-              <h1 className="font-dynapuff text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold mb-2 md:mb-4">Notre Carte & Menus</h1>
+              <h1 className="font-didot text-5xl sm:text-3xl md:text-4xl lg:text-6xl font-bold mb-2 md:mb-4">Notre Carte & Menus</h1>
               <div className="w-16 sm:w-24 h-1 bg-[#C4B5A2] mx-auto mb-3 sm:mb-4"></div>
             </div>
 

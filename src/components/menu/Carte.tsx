@@ -279,7 +279,7 @@ export default function Carte() {
   };
 
   const getImageUrl = (imagePath: string) => {
-    if (!imagePath) return '/images/default-dish.jpg';
+    if (!imagePath) return '/image2.png';
     if (imagePath.startsWith('http')) return imagePath;
     if (!imagePath.startsWith('/uploads/')) {
       return `${API_URL}/uploads${imagePath}`;
@@ -535,7 +535,7 @@ export default function Carte() {
   return (
     <section>
       <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold mb-4">Notre Carte</h2>
+        <h2 className="text-4xl font-didot-bold mb-4">Notre Carte</h2>
         <div className="w-24 h-1 bg-[#C4B5A2] mx-auto mb-8"></div>
         <p className="text-gray-400">Découvrez notre sélection de plats exotiques</p>
       </div>

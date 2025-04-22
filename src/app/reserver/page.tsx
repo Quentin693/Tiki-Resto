@@ -498,7 +498,7 @@ export default function ReservationPage() {
           </div>
 
           {/* Zone de contenu superposée */}
-          <div className="relative max-w-6xl mx-auto px-8 py-8">
+          <div className="relative max-w-6xl mt-40 mx-auto px-8 py-8">
             {/* Image stylisée du restaurant en haut */}
             <div className="relative w-full h-[300px] mb-8 rounded-xl overflow-hidden">
               <Image
@@ -510,8 +510,8 @@ export default function ReservationPage() {
               />
               <div className="absolute inset-0 bg-black/40" />
               <div className="absolute bottom-0 left-0 right-0 p-8">
-                <h1 className="text-4xl font-bold">Au Tiki Au Bord de l'Eau</h1>
-                <p className="text-xl text-gray-200">Découvrez notre expérience polynésienne</p>
+                <h1 className="text-7xl font-didot">Tiki Au Bord de l'Eau</h1>
+                <p className="text-xl text-gray-200">Découvrez notre expérience</p>
               </div>
             </div>
 
@@ -545,7 +545,7 @@ export default function ReservationPage() {
               <>
                 {/* En-tête */}
                 <div className="text-center mb-8">
-                  <h1 className="text-4xl font-bold mb-4">Réservez dès maintenant</h1>
+                  <h1 className="text-4xl font-didot-bold mb-4">Réservez dès maintenant</h1>
                   <div className="w-24 h-1 bg-[#C4B5A2] mx-auto mb-4"></div>
                   <p className="text-gray-300">Les réservations ouvrent 30 jours à l'avance</p>
                 </div>

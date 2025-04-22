@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { CalendarDays } from 'lucide-react';
 import Link from 'next/link';
-import { format } from 'date-fns';
+import { format, isPast, startOfDay, isFuture } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Image from 'next/image';
 
@@ -39,7 +39,15 @@ export default function EventsSection() {
           throw new Error('Erreur lors de la récupération des événements');
         }
         const data = await response.json();
-        setEvents(data);
+        
+        // Filtrer pour ne garder que les événements à venir ou d'aujourd'hui
+        const today = startOfDay(new Date());
+        const upcomingEvents = data.filter((event: Event) => {
+          const eventDate = startOfDay(new Date(event.date));
+          return !isPast(eventDate) || eventDate.getTime() === today.getTime();
+        });
+        
+        setEvents(upcomingEvents);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Une erreur est survenue');
       } finally {
@@ -62,6 +70,16 @@ export default function EventsSection() {
     return (
       <div className="text-center py-12 text-red-500">
         {error}
+      </div>
+    );
+  }
+
+  // Afficher un message si aucun événement à venir
+  if (events.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-xl font-didot text-[#C4B5A2] mb-4">Aucun événement à venir pour le moment</h3>
+        <p className="text-gray-400">Consultez cette page régulièrement pour découvrir nos prochains événements.</p>
       </div>
     );
   }

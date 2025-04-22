@@ -155,7 +155,7 @@ export default function TeamPage() {
       <TeamHero />
 
       {/* Contenu principal */}
-      <main className="relative flex-grow bg-[#141414]">
+      <main className="relative mt-20 flex-grow bg-[#141414]">
         <div className="relative">
           {/* Background avec feuilles */}
           <div className="absolute inset-0 flex">

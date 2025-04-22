@@ -184,7 +184,18 @@ export default function EventsPage() {
 
   // Grouper les événements par mois
   const groupedEvents = useMemo<GroupedEvents>(() => {
-    return events.reduce((groups: GroupedEvents, event) => {
+    // Filtrer d'abord les événements passés
+    const currentDate = new Date();
+    currentDate.setDate(1); // Premier jour du mois en cours
+    currentDate.setHours(0, 0, 0, 0); // Début de la journée
+    
+    const upcomingEvents = events.filter(event => {
+      const eventDate = new Date(event.date);
+      // Garder l'événement si sa date est dans le mois en cours ou future
+      return eventDate >= currentDate;
+    });
+    
+    return upcomingEvents.reduce((groups: GroupedEvents, event) => {
       const date = new Date(event.date);
       const monthYear = date.toLocaleString('fr-FR', { month: 'long', year: 'numeric' });
       
@@ -279,7 +290,7 @@ export default function EventsPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#141414] text-white">
+    <div className="flex flex-col  min-h-screen bg-[#141414] text-white">
       <Header />
       
       <main className="relative flex-grow bg-[#141414]">
@@ -314,7 +325,7 @@ export default function EventsPage() {
           </div>
 
           {/* Contenu */}
-          <div className="relative max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-8 sm:py-12 md:py-16">
+          <div className="relative mt-40 max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-8 sm:py-12 md:py-16">
             <PartnerCarousel />
 
             {user?.role === 'admin' && !isAddingEvent && !isEditing && (

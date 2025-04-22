@@ -1,5 +1,6 @@
 import { Menu, X, Instagram, Facebook, Clock, MapPin, Phone, Mail } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function Footer() {
     return (
@@ -11,10 +12,14 @@ export default function Footer() {
               <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-white">Suivez-nous</h3>
               <div className="flex justify-center md:justify-start space-x-4">
                 <a href="https://www.instagram.com/tiki_aubordeleau/" 
+                   target="_blank"
+                   rel="noopener noreferrer"
                    className="text-[#C4B5A2] hover:text-[#A69783] transition-colors duration-300">
                   <Instagram size={20} />
                 </a>
                 <a href="https://www.facebook.com/pierre.muguet.33" 
+                   target="_blank"
+                   rel="noopener noreferrer"
                    className="text-[#C4B5A2] hover:text-[#A69783] transition-colors duration-300">
                   <Facebook size={20} />
                 </a>
@@ -55,20 +60,61 @@ export default function Footer() {
           </div>
 
           <div className="mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-#C4B5A2">
-            <div className="flex justify-between items-center">
-              <p className="text-gray-400 text-xs sm:text-sm text-left">
+            <div className="flex flex-col sm:flex-row justify-between items-center">
+              {/* Liens légaux en tableau 2x2 */}
+              <div className="mb-4 sm:mb-0">
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                  <Link 
+                    href="/mentions-legales" 
+                    className="text-gray-400 hover:text-[#C4B5A2] text-xs sm:text-sm transition-colors duration-300"
+                    prefetch={false}
+                    passHref
+                  >
+                    Mentions légales
+                  </Link>
+                  <Link 
+                    href="/politique-confidentialite" 
+                    className="text-gray-400 hover:text-[#C4B5A2] text-xs sm:text-sm transition-colors duration-300"
+                    prefetch={false}
+                    passHref
+                  >
+                    Politique de confidentialité
+                  </Link>
+                  <Link 
+                    href="/cookies" 
+                    className="text-gray-400 hover:text-[#C4B5A2] text-xs sm:text-sm transition-colors duration-300"
+                    prefetch={false}
+                    passHref
+                  >
+                    Gestion des cookies
+                  </Link>
+                  <Link 
+                    href="/conditions-utilisation" 
+                    className="text-gray-400 hover:text-[#C4B5A2] text-xs sm:text-sm transition-colors duration-300"
+                    prefetch={false}
+                    passHref
+                  >
+                    CGU
+                  </Link>
+                </div>
+              </div>
+
+              {/* Copyright centré */}
+              <p className="text-gray-400 text-xs sm:text-sm text-center mb-4 sm:mb-0">
                 © {new Date().getFullYear()} Restaurant Tiki Au bord de l'eau. Tous droits réservés.
               </p>
+
+              {/* Logo à droite */}
               <div className="flex items-center gap-3">
-                <div className="relative w-16 h-16">
+                <Link href="/" className="relative w-16 h-16">
                   <Image
                     src="/logos/TikiLogo.png"
                     alt="Tiki Logo"
                     fill
                     className="object-contain"
                   />
-                </div>
-                <span className="text-[#C4B5A2] font-dynapuff text-2xl">TIKI</span>
+                </Link>
+                <span className="text-[#C4B5A2] font-didot text-2xl">TIKI</span>
               </div>
             </div>
           </div>
