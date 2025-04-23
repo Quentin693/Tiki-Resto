@@ -159,8 +159,8 @@ export default function HomePage() {
               <div className="relative h-full flex flex-col items-center justify-center text-center px-4 z-20">
                 {/* Logo et texte centrés avec design épuré */}
                 <div className="flex flex-col items-center justify-center mt-24 sm:mt-28 max-w-screen-xl mx-auto">
-                  {/* Titre Tiki Resto avec logo au milieu */}
-                  <div className="flex items-center justify-center mb-4">
+                  {/* Titre Tiki Resto avec logo en dessous */}
+                  <div className="flex flex-col items-center justify-center mb-4">
                     <h2 className="font-didot text-6xl sm:text-7xl md:text-8xl font-light tracking-widest text-white leading-none capitalize">
                       TIKI  
                     </h2>
@@ -168,18 +168,17 @@ export default function HomePage() {
                     <img 
                       src="/logos/TikiLogo.png"
                       alt="Tiki Logo"
-                      className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 mx-3 sm:mx-4 md:mx-5 opacity-95 self-center translate-y-0"
+                      className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 my-4 opacity-95"
                     />
-                    
-                    <h2 className="font-didot text-6xl sm:text-7xl md:text-8xl font-light tracking-widest text-white leading-none capitalize">
-                       RESTO
-                    </h2>
                   </div>
                   
-                  {/* Sous-titre avec plus d'espacement */}
-                  <p className="font-allura text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-[#e8dcc5] mt-2 mb-16 tracking-wide leading-none">
+                  {/* Sous-titre avec la même font */}
+                  <p className="font-allura text-3xl sm:text-4xl md:text-5xl text-[#e8dcc5] tracking-wide leading-none mb-6">
                     Au Bord de l &apos;eau
                   </p>
+                  
+                  {/* Séparateur élégant */}
+                  <div className="w-48 sm:w-56 md:w-64 h-[1px] bg-gradient-to-r from-transparent via-[#e8dcc5]/70 to-transparent mb-12"></div>
                   
                   {/* Titre du slide - design plus épuré */}
                   <h1 className="font-didot text-5xl sm:text-6xl md:text-7xl font-light text-white tracking-wide mb-3">
@@ -194,9 +193,12 @@ export default function HomePage() {
                   {/* Bouton de réservation plus élégant */}
                   <a
                     href="/reserver"
-                    className="bg-[#e8dcc5]/70 hover:bg-[#e8dcc5] text-[#1a1a1a] font-didot text-xl font-medium px-12 py-4 tracking-wider transition-colors duration-300 uppercase"
+                    className="group relative overflow-hidden bg-transparent text-[#e8dcc5] font-didot text-xl font-medium px-12 py-4 tracking-wider uppercase transition-all duration-500"
                   >
-                    Réservez Maintenant
+                    <span className="relative z-10">Réservez Maintenant</span>
+                    <span className="absolute inset-0 border border-[#e8dcc5]/70 group-hover:border-[#e8dcc5] transition-colors duration-500"></span>
+                    <span className="absolute bottom-0 left-0 right-0 h-0 bg-[#e8dcc5]/10 group-hover:h-full transition-all duration-300 ease-out"></span>
+                    <span className="absolute -bottom-1 left-0 right-0 h-[1px] bg-[#e8dcc5]/50 group-hover:bg-[#e8dcc5] transition-colors duration-500"></span>
                   </a>
                 </div>
 
@@ -252,7 +254,7 @@ export default function HomePage() {
                   <div className="absolute inset-4 border border-[#e8dcc5]/30 z-10"></div>
                   <div className="absolute inset-0 overflow-hidden">
                     <Image 
-                      src="/FruitsdeMer.jpg" 
+                      src="/Plateau.jpg" 
                       alt="Plateau de fruits de mer" 
                       fill 
                       className="object-cover transition-all duration-700 group-hover:scale-105"
@@ -286,7 +288,7 @@ export default function HomePage() {
                       {/* Plateau de l'écaillé */}
                       <div className="bg-[#1a1a1a]/50 border border-[#e8dcc5]/20 p-4 rounded-sm">
                         <div className="flex justify-between items-center mb-2">
-                          <h5 className="font-medium text-[#e8dcc5]">Plateau de l'écaillé</h5>
+                          <h5 className="font-medium text-[#e8dcc5]">Plateau de l'écailler</h5>
                           <span className="text-[#e8dcc5] font-light">49.00€</span>
                         </div>
                         <p className="text-gray-400 text-sm">12 fines de claire, 6 crevettes roses, bulots 300g</p>
@@ -304,7 +306,7 @@ export default function HomePage() {
                       {/* Assiette de l'écaillé */}
                       <div className="bg-[#1a1a1a]/50 border border-[#e8dcc5]/20 p-4 rounded-sm">
                         <div className="flex justify-between items-center mb-2">
-                          <h5 className="font-medium text-[#e8dcc5]">Assiette de l'écaillé</h5>
+                          <h5 className="font-medium text-[#e8dcc5]">Assiette de l'écailler</h5>
                           <span className="text-[#e8dcc5] font-light">15.00€</span>
                         </div>
                         <p className="text-gray-400 text-sm">3 fines de claire n°3, 3 crevettes roses, bulots 100g</p>

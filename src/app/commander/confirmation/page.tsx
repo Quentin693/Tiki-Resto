@@ -1,9 +1,9 @@
 "use client"
 
 import React from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
-import { CheckCircle, Calendar, ArrowLeft } from 'lucide-react';
+import Image from 'next/image';
+import { CheckCircle, ArrowLeft, Calendar, Clock, MapPin } from 'lucide-react';
 
 export default function ConfirmationPage() {
   return (
@@ -34,75 +34,64 @@ export default function ConfirmationPage() {
       </div>
 
       {/* Contenu principal */}
-      <div className="container mt-40 mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="bg-[#1a1a1a]/70 border border-[#333] rounded-lg p-6 sm:p-10 max-w-2xl mx-auto">
-          <div className="text-center mb-8">
-            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-            <h1 className="font-didot text-3xl sm:text-4xl text-[#e8dcc5] mb-4">Commande Confirmée</h1>
-            <div className="w-16 h-[1px] bg-[#e8dcc5]/50 mx-auto mb-4"></div>
-            <p className="text-gray-300">
-              Merci pour votre commande. Nous vous confirmons sa réception.
+      <div className="container mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 relative z-10">
+        <Link 
+          href="/" 
+          className="inline-flex items-center gap-2 text-[#e8dcc5] hover:text-white mb-8 group transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+          <span className="font-didot text-sm sm:text-base">Retour à l'accueil</span>
+        </Link>
+
+        <div className="bg-[#1a1a1a]/70 border border-[#333] rounded-lg p-8 sm:p-10 mx-auto max-w-2xl">
+          <div className="flex items-center justify-center mb-6 text-[#4BB543]">
+            <CheckCircle className="w-16 h-16" />
+          </div>
+          
+          <h1 className="font-didot text-3xl sm:text-4xl text-center text-[#e8dcc5] mb-6">
+            Commande confirmée !
+          </h1>
+          
+          <p className="text-gray-300 text-center mb-8">
+            Votre commande de fruits de mer a été envoyée avec succès. Nous vous confirmerons sa préparation par téléphone.
+          </p>
+          
+          <div className="space-y-4 mb-8">
+            <div className="flex items-center text-gray-300 gap-3">
+              <Calendar className="w-5 h-5 text-[#e8dcc5]" />
+              <span>Votre commande sera prête à la date que vous avez sélectionnée</span>
+            </div>
+            <div className="flex items-center text-gray-300 gap-3">
+              <Clock className="w-5 h-5 text-[#e8dcc5]" />
+              <span>À l'heure précisée lors de votre commande</span>
+            </div>
+            <div className="flex items-center text-gray-300 gap-3">
+              <MapPin className="w-5 h-5 text-[#e8dcc5]" />
+              <span>À récupérer au restaurant Tiki au Bord de l'Eau</span>
+            </div>
+          </div>
+          
+          <div className="bg-[#16140e] p-4 rounded-lg text-sm text-gray-400 mb-8">
+            <p>
+              Pour toute modification ou annulation, merci de nous contacter directement par téléphone
+              au <span className="text-[#e8dcc5]">04 81 91 51 67</span> au moins 24h à l'avance.
             </p>
           </div>
-
-          <div className="space-y-8">
-            <div className="bg-[#111]/70 p-4 sm:p-6 rounded-lg border border-[#333]">
-              <h2 className="font-didot text-xl text-[#e8dcc5] mb-4">Informations importantes</h2>
-              <ul className="space-y-3 text-gray-300">
-                <li className="flex items-start gap-2">
-                  <span className="text-[#e8dcc5] text-lg">•</span>
-                  <span>Votre commande sera prête à la date et l'heure que vous avez indiquées.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-[#e8dcc5] text-lg">•</span>
-                  <span>Un email récapitulatif vous a été envoyé (si vous avez fourni une adresse email).</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-[#e8dcc5] text-lg">•</span>
-                  <span>Vous pouvez modifier ou annuler votre commande jusqu'à 24h avant la date prévue en nous contactant par téléphone.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-[#e8dcc5] text-lg">•</span>
-                  <span>N'oubliez pas de vous munir d'une pièce d'identité lors du retrait.</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="p-4 sm:p-6 rounded-lg border border-[#e8dcc5]/30 bg-[#e8dcc5]/5">
-              <div className="flex items-center text-[#e8dcc5] gap-2 mb-3">
-                <Calendar className="w-5 h-5" />
-                <h3 className="font-medium">Pour le jour de votre retrait</h3>
-              </div>
-              <p className="text-gray-300 text-sm">
-                Présentez-vous à l'accueil du restaurant à l'heure indiquée. Notre équipe vérifiera votre commande avec vous avant de vous la remettre.
-              </p>
-              
-              <div className="mt-4 pt-4 border-t border-[#e8dcc5]/20">
-                <p className="text-gray-400 text-sm italic">
-                  Pour toute question concernant votre commande, n'hésitez pas à nous contacter au 04 78 49 02 39.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex justify-center">
-              <Link href="/" className="group flex items-center gap-2 text-[#e8dcc5] hover:text-white transition-colors">
-                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                <span>Retour à l'accueil</span>
-              </Link>
-            </div>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/"
+              className="px-6 py-3 bg-[#333] hover:bg-[#444] rounded text-center text-white transition-colors"
+            >
+              Retour à l'accueil
+            </Link>
+            <Link
+              href="/carte"
+              className="px-6 py-3 bg-[#e8dcc5]/20 hover:bg-[#e8dcc5]/30 rounded text-center text-[#e8dcc5] transition-colors"
+            >
+              Voir la carte
+            </Link>
           </div>
-        </div>
-        
-        <div className="mt-12 text-center">
-          <img 
-            src="/logos/TikiLogo.png" 
-            alt="Tiki Restaurant Logo"
-            className="w-24 h-24 mx-auto mb-4 opacity-70"
-          />
-          <h2 className="font-didot text-2xl text-[#e8dcc5]">Restaurant Tiki</h2>
-          <p className="text-gray-400 text-sm mt-2">
-            Chemin du Pontet, 69150 Décines-Charpieu
-          </p>
         </div>
       </div>
     </div>

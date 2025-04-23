@@ -1,16 +1,18 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Image from 'next/image';
 import { CalendarDays, Clock, Users, Phone, Mail, MapPin, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
+import { seafoodOrdersService } from '../api/seafood-orders';
+import emailjs from '@emailjs/browser';
 
 const plateaux = [
   {
     id: 'plateau-ecaille',
-    name: 'Plateau de l\'écaillé',
+    name: 'Plateau de l\'écailler',
     price: 49.00,
     description: '12 fines de claire, 6 crevettes roses, bulots 300g',
     image: '/FruitsdeMer.jpg',
@@ -22,16 +24,16 @@ const plateaux = [
     name: 'Plateau du pêcheur',
     price: 62.00,
     description: '12 Perles de l\'impératrice, 6 crevettes roses, bulots 300g',
-    image: '/seafood-plate.jpg',
+    image: '/FruitsdeMer.jpg',
     min: 2,
     max: 4
   },
   {
     id: 'assiette-ecaille',
-    name: 'Assiette de l\'écaillé',
+    name: 'Assiette de l\'écailler',
     price: 15.00,
     description: '3 fines de claire n°3, 3 crevettes roses, bulots 100g',
-    image: '/oysters.jpg',
+    image: '/FruitsdeMer.jpg',
     min: 1,
     max: 1
   },
@@ -40,7 +42,7 @@ const plateaux = [
     name: 'Assiette dégustation',
     price: 19.00,
     description: '3 fines de claire n°3, 3 Perles de l\'impératrice n°3',
-    image: '/custom-seafood.jpg',
+    image: '/FruitsdeMer.jpg',
     min: 1,
     max: 1
   }
@@ -109,6 +111,7 @@ export default function CommanderPage() {
   const [email, setEmail] = useState('');
   const [specialRequests, setSpecialRequests] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const formRef = useRef(null);
   
   // État pour les produits individuels
   const [selectedItems, setSelectedItems] = useState<{[key: string]: {quantity: number, half?: boolean}}>({});
@@ -161,15 +164,15 @@ export default function CommanderPage() {
   };
 
   // Calculer le prix d'un produit individuel
-  const getItemPrice = (id: string, half: boolean = false) => {
+  const getItemPrice = (id: string, half: boolean = false): number => {
     const item = produitsIndividuels.find(i => i.id === id);
     if (!item) return 0;
     
     if (half && 'halfPrice' in item) {
-      return item.halfPrice;
+      return item.halfPrice || 0;
     }
     
-    return item.price;
+    return item.price || 0;
   };
   
   // Calculer le prix pour le plateau sur mesure
@@ -244,20 +247,21 @@ export default function CommanderPage() {
       // Construction de la commande complète
       const orderData = {
         customer: { name, phone, email },
-        plateaux: hasSelectedPlateau ? [{
-          id: selectedPlateau,
-          name: plateaux.find(p => p.id === selectedPlateau)?.name,
-          quantity,
-          price: plateaux.find(p => p.id === selectedPlateau)?.price
-        }] : [],
+        plateaux: hasSelectedPlateau && selectedPlateau ? 
+          [{
+            id: selectedPlateau,
+            name: plateaux.find(p => p.id === selectedPlateau)?.name || 'Plateau',
+            quantity,
+            price: plateaux.find(p => p.id === selectedPlateau)?.price || 0
+          }] : [],
         items: Object.entries(selectedItems).map(([id, details]) => {
           const product = produitsIndividuels.find(p => p.id === id);
           return {
             id,
-            name: product?.name,
+            name: product?.name || 'Produit',
             quantity: details.quantity,
-            half: details.half,
-            price: getItemPrice(id, details.half)
+            half: !!details.half,
+            price: getItemPrice(id, details.half) || 0
           };
         }),
         pickupInfo: {
@@ -269,9 +273,47 @@ export default function CommanderPage() {
         totalPrice: calculateTotal()
       };
       
-      // Simuler un envoi d'email/API
-      console.log('Commande à envoyer:', orderData);
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Envoi à l'API
+      const createdOrder = await seafoodOrdersService.createOrder(orderData);
+      
+      // Préparation des données pour les notifications
+      const orderDetails = {
+        order_id: createdOrder.id,
+        customer_name: name,
+        customer_phone: phone,
+        customer_email: email,
+        pickup_date: date,
+        pickup_time: time,
+        is_pickup: isPickup ? "À emporter" : "Sur place",
+        plateaux: hasSelectedPlateau && selectedPlateau ? 
+          `${plateaux.find(p => p.id === selectedPlateau)?.name} (${quantity})` : "Aucun",
+        items: Object.entries(selectedItems).map(([id, details]) => {
+          const product = produitsIndividuels.find(p => p.id === id);
+          return `${product?.name} ${details.half ? "(demi-douzaine)" : ""} (${details.quantity})`;
+        }).join(", "),
+        special_requests: specialRequests || "Aucune demande spéciale",
+        total_price: calculateTotal().toFixed(2) + " €"
+      };
+      
+      // 1. Envoyer un SMS au client via l'API backend qui utilise Twilio
+      await fetch('/api/send-sms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: phone,
+          message: `Bonjour ${name}, votre commande chez TIKI au bord de l'eau a bien été enregistrée pour le ${date} à ${time}. Montant total: ${calculateTotal().toFixed(2)}€. À bientôt!`
+        }),
+      });
+      
+      // 2. Envoyer un email avec les détails de la commande via EmailJS
+      await emailjs.send(
+        "service_w43hhbe", // Remplacer par votre service ID
+        "template_order_confirmation", // Créer un template pour les commandes
+        orderDetails,
+        "qGukIkoXy-BXaqm2L" // Remplacer par votre user ID
+      );
       
       toast.success('Votre commande a été envoyée avec succès');
       
@@ -555,7 +597,7 @@ export default function CommanderPage() {
                 Détails de la commande
               </h2>
               
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} ref={formRef} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     Mode de récupération*

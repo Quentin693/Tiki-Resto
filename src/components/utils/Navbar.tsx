@@ -182,8 +182,8 @@ export default function Navbar() {
             </Link>
 
             {/* Logo Tiki en version mobile */}
-            <div className="lg:hidden absolute left-1/2 transform -translate-x-1/2">
-              <span className="text-white font-didot text-5xl mt-6 tracking-wider drop-shadow-sm">TIKI</span>
+            <div className="lg:hidden absolute left-1/2 transform -translate-x-1/2 mt-3">
+              <span className="text-white font-didot text-5xl tracking-wider drop-shadow-sm">TIKI</span>
             </div>
 
             {/* Navigation Desktop */}

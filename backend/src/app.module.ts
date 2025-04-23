@@ -13,6 +13,7 @@ import { UsersModule } from './users/users.module';
 import { EventsModule } from './events/events.module';
 import { GalleryModule } from './gallery/gallery.module';
 import { PersonnelModule } from './personnel/personnel.module';
+import { SeafoodOrdersModule } from './seafood-orders/seafood-orders.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { PersonnelModule } from './personnel/personnel.module';
     EventsModule,
     GalleryModule,
     PersonnelModule,
+    SeafoodOrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

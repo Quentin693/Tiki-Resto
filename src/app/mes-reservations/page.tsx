@@ -29,12 +29,53 @@ interface Reservation {
   customerEmail?: string;
 }
 
-// Interface pour le formulaire de modification
+// Interface pour le formulaire de modification de réservation
 interface EditFormData {
   date: string;
   time: string;
   guests: number;
   specialRequests?: string;
+}
+
+// Interfaces pour les commandes de fruits de mer
+interface SeafoodItem {
+  id: string;
+  name: string;
+  quantity: number;
+  price: number;
+  half?: boolean;
+}
+
+interface SeafoodPlateau {
+  id: string;
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+interface SeafoodOrder {
+  id: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  pickupDate: string;
+  pickupTime: string;
+  isPickup: boolean;
+  items: SeafoodItem[];
+  plateaux: SeafoodPlateau[];
+  totalPrice: number;
+  specialRequests?: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Interface pour le formulaire de modification de commande
+interface EditSeafoodOrderFormData {
+  pickupDate: string;
+  pickupTime: string;
+  specialRequests?: string;
+  isPickup: boolean;
 }
 
 export default function MesReservationsPage() {
@@ -43,6 +84,11 @@ export default function MesReservationsPage() {
   const { user, isAuthenticated, refreshLogin, token } = useAuth();
   const router = useRouter();
   const [loadAttempted, setLoadAttempted] = useState(false);
+  
+  // État pour les commandes de fruits de mer
+  const [seafoodOrders, setSeafoodOrders] = useState<SeafoodOrder[]>([]);
+  const [loadOrdersAttempted, setLoadOrdersAttempted] = useState(false);
+  const [activeTab, setActiveTab] = useState<'reservations' | 'orders'>('reservations');
   
   // État pour la modification
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
@@ -53,11 +99,23 @@ export default function MesReservationsPage() {
     guests: 2,
     specialRequests: ''
   });
+  
+  // États pour la modification des commandes de fruits de mer
+  const [editingOrder, setEditingOrder] = useState<SeafoodOrder | null>(null);
+  const [showEditOrderModal, setShowEditOrderModal] = useState(false);
+  const [editOrderFormData, setEditOrderFormData] = useState<EditSeafoodOrderFormData>({
+    pickupDate: '',
+    pickupTime: '',
+    specialRequests: '',
+    isPickup: true
+  });
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<{time: string, available: boolean}[]>([]);
   
   // Nouvel état pour la confirmation de suppression
   const [confirmingDelete, setConfirmingDelete] = useState<number | null>(null);
+  const [confirmingOrderDelete, setConfirmingOrderDelete] = useState<string | null>(null);
   const [sendNotification, setSendNotification] = useState(true);
 
   useEffect(() => {
@@ -77,6 +135,14 @@ export default function MesReservationsPage() {
       setIsLoading(false);
     }
   }, [user, loadAttempted, isLoading]);
+  
+  // Effet pour charger les commandes de fruits de mer
+  useEffect(() => {
+    if (user && user.id && !loadOrdersAttempted) {
+      fetchUserSeafoodOrders();
+      setLoadOrdersAttempted(true);
+    }
+  }, [user, loadOrdersAttempted]);
 
   // Fonction pour charger les créneaux disponibles pour une date
   const fetchAvailableTimeSlots = async (date: string) => {
@@ -253,6 +319,130 @@ export default function MesReservationsPage() {
       toast.error(`Impossible de charger vos réservations: ${error.message || 'Erreur inconnue'}`);
     } finally {
       setIsLoading(false);
+    }
+  }, [refreshLogin, user, isAuthenticated, token]);
+
+  // Fonction pour récupérer les commandes de fruits de mer de l'utilisateur
+  const fetchUserSeafoodOrders = useCallback(async () => {
+    try {
+      let response = null;
+      let success = false;
+      let errorDetails = '';
+      
+      // Si l'utilisateur est connecté, on essaie d'abord son token
+      if (isAuthenticated && user) {
+        try {
+          const storedToken = localStorage.getItem('token');
+          
+          if (token !== storedToken) {
+            console.warn('Page Seafood: Attention - Le token du contexte ne correspond pas au token stocké');
+          }
+          
+          const tokenToUse = token || storedToken;
+          if (!tokenToUse) {
+            console.error('Page Seafood: Aucun token disponible. Impossible de faire la requête authentifiée.');
+            throw new Error('Token manquant');
+          }
+          
+          response = await fetch('/api/seafood-orders/user', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${tokenToUse}`
+            }
+          });
+          
+          if (response.ok) {
+            success = true;
+          } else {
+            const errorData = await response.json();
+            errorDetails = errorData.message || 'Erreur d\'authentification';
+            console.error('Page Seafood: Erreur avec le token:', response.status, errorData);
+            
+            // Si le token est invalide, essayer de rafraîchir la session
+            if (errorData.message && errorData.message.includes('Token')) {
+              console.log('Page Seafood: Tentative de rafraîchir la session...');
+              const refreshSuccess = await refreshLogin();
+              
+              if (refreshSuccess) {
+                const newToken = localStorage.getItem('token');
+                console.log('Page Seafood: Nouvelle tentative avec token rafraîchi:', newToken ? 'Token disponible' : 'Pas de nouveau token');
+                
+                // Réessayer avec le nouveau token
+                response = await fetch('/api/seafood-orders/user', {
+                  method: 'GET',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                  }
+                });
+                
+                if (response.ok) {
+                  success = true;
+                  console.log('Page Seafood: Commandes récupérées avec succès après rafraîchissement');
+                } else {
+                  const newErrorData = await response.json();
+                  errorDetails = newErrorData.message || 'Échec après rafraîchissement';
+                  console.error('Page Seafood: Échec après rafraîchissement:', response.status, newErrorData);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Page Seafood: Erreur lors de la requête authentifiée:', error);
+          errorDetails = 'Erreur de communication avec le serveur';
+        }
+      }
+      
+      // Si l'authentification a échoué ou n'a pas été tentée, on essaie par email/téléphone
+      if (!success) {
+        console.log('Tentative de récupération des commandes par email/téléphone');
+        const searchParams = new URLSearchParams();
+        if (user?.email) searchParams.append('email', user.email);
+        if (user?.phoneNumber) searchParams.append('phone', user.phoneNumber);
+        
+        // Si nous n'avons ni email ni téléphone, afficher un message d'erreur
+        if (!user?.email && !user?.phoneNumber) {
+          console.log('Aucun email ou téléphone disponible pour chercher les commandes');
+          return;
+        }
+        
+        try {
+          response = await fetch(`/api/seafood-orders/search?${searchParams.toString()}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            success = true;
+            console.log('Commandes récupérées avec succès via email/téléphone');
+          } else {
+            const searchErrorData = await response.json();
+            errorDetails = searchErrorData.message || 'Erreur de recherche';
+            console.error('Erreur de recherche par email/téléphone:', searchErrorData);
+          }
+        } catch (searchError) {
+          console.error('Erreur lors de la recherche par email/téléphone:', searchError);
+          errorDetails = 'Erreur de communication lors de la recherche';
+        }
+      }
+
+      // Vérifier que response n'est pas null avant d'appeler .json()
+      if (!response || !success) {
+        // Si les commandes ne sont pas trouvées, c'est peut-être normal (l'utilisateur n'a pas de commandes)
+        // Donc on ne lance pas d'erreur mais on initialise avec un tableau vide
+        setSeafoodOrders([]);
+        return;
+      }
+
+      const data = await response.json();
+      setSeafoodOrders(data);
+    } catch (error: any) {
+      console.error('Erreur globale lors de la récupération des commandes:', error);
+      // On initialise avec un tableau vide plutôt que d'afficher une erreur
+      setSeafoodOrders([]);
     }
   }, [refreshLogin, user, isAuthenticated, token]);
 
@@ -464,6 +654,195 @@ export default function MesReservationsPage() {
     });
   };
 
+  // Fonction pour filtrer les commandes passées
+  const filterPastOrders = (orders: SeafoodOrder[]) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Réinitialise l'heure à minuit
+    
+    return orders.filter(order => {
+      const pickupDate = new Date(order.pickupDate);
+      
+      // Si la date est antérieure à aujourd'hui, c'est une commande passée
+      if (pickupDate < today) {
+        return false;
+      }
+      
+      // Si c'est aujourd'hui, vérifier l'heure
+      if (pickupDate.getDate() === today.getDate() &&
+          pickupDate.getMonth() === today.getMonth() &&
+          pickupDate.getFullYear() === today.getFullYear()) {
+        
+        // Comparer l'heure actuelle avec l'heure de retrait
+        const now = new Date();
+        const [hours, minutes] = order.pickupTime.split(':').map(Number);
+        
+        // Si l'heure de retrait est passée, ne pas l'afficher
+        if (hours < now.getHours() || (hours === now.getHours() && minutes < now.getMinutes())) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  };
+
+  // Fonctions manquantes pour gérer les commandes de fruits de mer
+  // Ouvrir le modal de modification d'une commande de fruits de mer
+  const handleEditOrder = (order: SeafoodOrder) => {
+    setEditingOrder(order);
+    setEditOrderFormData({
+      pickupDate: order.pickupDate,
+      pickupTime: order.pickupTime,
+      specialRequests: order.specialRequests || '',
+      isPickup: order.isPickup
+    });
+    
+    setShowEditOrderModal(true);
+  };
+
+  // Gérer les changements dans le formulaire de modification de commande
+  const handleEditOrderFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    
+    if (name === 'isPickup') {
+      setEditOrderFormData(prev => ({
+        ...prev,
+        [name]: value === 'true'
+      }));
+    } else {
+      setEditOrderFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
+
+  // Soumettre les modifications de commande
+  const handleEditOrderSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!editingOrder) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Préparer les données pour l'API
+      const orderData = {
+        pickupDate: editOrderFormData.pickupDate,
+        pickupTime: editOrderFormData.pickupTime,
+        specialRequests: editOrderFormData.specialRequests,
+        isPickup: editOrderFormData.isPickup,
+        sendSms: sendNotification
+      };
+      
+      const response = await fetch(`/api/seafood-orders/${editingOrder.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(orderData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erreur lors de la modification');
+      }
+      
+      const updatedOrder = await response.json();
+      
+      // Mettre à jour la liste des commandes
+      setSeafoodOrders(prev => 
+        prev.map(order => order.id === editingOrder.id ? updatedOrder : order)
+      );
+      
+      toast.success('Commande modifiée avec succès');
+      setShowEditOrderModal(false);
+    } catch (error: any) {
+      console.error('Erreur:', error);
+      toast.error(`Impossible de modifier la commande: ${error.message || 'Erreur inconnue'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Demander la confirmation pour annuler une commande
+  const handleCancelOrder = (orderId: string) => {
+    console.log("Bouton d'annulation cliqué pour la commande:", orderId);
+    setConfirmingOrderDelete(orderId);
+  };
+  
+  // Confirmer la suppression d'une commande
+  const confirmOrderDelete = async () => {
+    if (confirmingOrderDelete === null) return;
+    
+    const orderId = confirmingOrderDelete;
+    
+    try {
+      console.log("Suppression confirmée pour commande:", orderId);
+      
+      const tokenToUse = localStorage.getItem('token');
+      
+      if (!tokenToUse) {
+        toast.error('Vous devez être connecté pour annuler une commande');
+        setConfirmingOrderDelete(null);
+        return;
+      }
+      
+      const response = await fetch(`/api/seafood-orders/${orderId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tokenToUse}`
+        },
+        body: JSON.stringify({ sendSms: sendNotification })
+      });
+      
+      console.log("Réponse reçue, statut:", response.status);
+      
+      if (!response.ok) {
+        let errorMsg = `Erreur ${response.status} lors de l'annulation`;
+        try {
+          const data = await response.json();
+          errorMsg = data.message || errorMsg;
+        } catch (e) {
+          // Ignorer les erreurs de parsing JSON
+        }
+        throw new Error(errorMsg);
+      }
+
+      // Mettre à jour l'état local
+      setSeafoodOrders(prev => prev.filter(order => order.id !== orderId));
+      toast.success('Commande annulée avec succès');
+      
+      // Recharger les commandes pour s'assurer que tout est à jour
+      fetchUserSeafoodOrders();
+      
+    } catch (error: any) {
+      console.error('Erreur complète:', error);
+      toast.error(`Impossible d'annuler la commande: ${error.message || 'Erreur inconnue'}`);
+      
+      if (error.message && (
+        error.message.includes('Token') || 
+        error.message.includes('auth') || 
+        error.message.includes('401')
+      )) {
+        refreshLogin().then(success => {
+          if (success) {
+            toast.success('Session rafraîchie, veuillez réessayer');
+          }
+        });
+      }
+    } finally {
+      setConfirmingOrderDelete(null);
+    }
+  };
+  
+  // Fonction pour annuler la suppression d'une commande
+  const cancelOrderDelete = () => {
+    setConfirmingOrderDelete(null);
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-[#141414]">
@@ -509,81 +888,231 @@ export default function MesReservationsPage() {
         <div className="container mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-didot text-center text-[#C4B5A2] mb-12">Mes Réservations</h1>
           
-          {reservations.length === 0 ? (
-            <div className="text-center py-12 bg-[#2a2a2a]/50 rounded-xl border border-[#3a3a3a]/50">
-              <h2 className="text-2xl font-medium text-gray-300 mb-4">Vous n'avez pas encore de réservations</h2>
-              <p className="text-gray-400 mb-6">Réservez une table dès maintenant pour profiter de notre cuisine exotique !</p>
+          {/* Onglets pour switcher entre réservations et commandes */}
+          <div className="flex justify-center mb-8">
+            <div className="flex rounded-lg bg-[#2a2a2a]/70 p-1 border border-[#3a3a3a]/50">
               <button 
-                onClick={() => router.push('/reserver')}
-                className="bg-[#C4B5A2] hover:bg-[#A69783] text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                onClick={() => setActiveTab('reservations')}
+                className={`px-6 py-3 rounded-md transition-colors font-medium ${
+                  activeTab === 'reservations' 
+                    ? 'bg-[#C4B5A2] text-black' 
+                    : 'text-gray-300 hover:text-white hover:bg-[#2a2a2a]'
+                }`}
               >
-                Faire une réservation
+                Tables
+              </button>
+              <button 
+                onClick={() => setActiveTab('orders')}
+                className={`px-6 py-3 rounded-md transition-colors font-medium ${
+                  activeTab === 'orders' 
+                    ? 'bg-[#C4B5A2] text-black' 
+                    : 'text-gray-300 hover:text-white hover:bg-[#2a2a2a]'
+                }`}
+              >
+                Fruits de mer
               </button>
             </div>
-          ) : (
-            <>
-              {/* Filtrer les réservations passées */}
-              {(() => {
-                const activeReservations = filterPastReservations(reservations);
-                
-                if (activeReservations.length === 0) {
+          </div>
+          
+          {activeTab === 'reservations' ? (
+            // Contenu pour les réservations de table
+            reservations.length === 0 ? (
+              <div className="text-center py-12 bg-[#2a2a2a]/50 rounded-xl border border-[#3a3a3a]/50">
+                <h2 className="text-2xl font-medium text-gray-300 mb-4">Vous n'avez pas encore de réservations</h2>
+                <p className="text-gray-400 mb-6">Réservez une table dès maintenant pour profiter de notre cuisine exotique !</p>
+                <button 
+                  onClick={() => router.push('/reserver')}
+                  className="bg-[#C4B5A2] hover:bg-[#A69783] text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                >
+                  Faire une réservation
+                </button>
+              </div>
+            ) : (
+              <>
+                {(() => {
+                  const activeReservations = filterPastReservations(reservations);
+                  
+                  if (activeReservations.length === 0) {
+                    return (
+                      <div className="text-center py-12 bg-[#2a2a2a]/50 rounded-xl border border-[#3a3a3a]/50">
+                        <h2 className="text-2xl font-medium text-gray-300 mb-4">Vous n'avez pas de réservations à venir</h2>
+                        <p className="text-gray-400 mb-6">Réservez une table dès maintenant pour profiter de notre cuisine exotique !</p>
+                        <button 
+                          onClick={() => router.push('/reserver')}
+                          className="bg-[#C4B5A2] hover:bg-[#A69783] text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                        >
+                          Faire une réservation
+                        </button>
+                      </div>
+                    );
+                  }
+                  
                   return (
-                    <div className="text-center py-12 bg-[#2a2a2a]/50 rounded-xl border border-[#3a3a3a]/50">
-                      <h2 className="text-2xl font-medium text-gray-300 mb-4">Vous n'avez pas de réservations à venir</h2>
-                      <p className="text-gray-400 mb-6">Réservez une table dès maintenant pour profiter de notre cuisine exotique !</p>
-                      <button 
-                        onClick={() => router.push('/reserver')}
-                        className="bg-[#C4B5A2] hover:bg-[#A69783] text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-                      >
-                        Faire une réservation
-                      </button>
+                    <div className="grid gap-6 md:gap-8">
+                      {activeReservations.map((reservation) => (
+                        <div 
+                          key={reservation.id} 
+                          className="bg-[#2a2a2a]/50 rounded-xl border border-[#3a3a3a]/50 p-6 flex flex-col md:flex-row md:items-center justify-between"
+                        >
+                          <div className="flex-grow mb-4 md:mb-0">
+                            <div className="flex items-center mb-2">
+                              <span className="text-[#C4B5A2] text-xl font-semibold">{formatDate(reservation.date)}</span>
+                              <span className="ml-2 px-2 py-1 bg-[#C4B5A2]/20 rounded text-sm text-[#C4B5A2]">
+                                {reservation.time}
+                              </span>
+                            </div>
+                            <p className="text-gray-300">
+                              <span className="font-medium">{reservation.guests}</span> {reservation.guests > 1 ? 'personnes' : 'personne'}
+                            </p>
+                            {reservation.specialRequests && (
+                              <p className="text-gray-400 mt-2 text-sm">
+                                <span className="font-medium">Demandes spéciales :</span> {reservation.specialRequests}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-4">
+                            <button
+                              onClick={() => handleEdit(reservation)}
+                              className="px-4 py-2 border border-blue-500/70 text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
+                            >
+                              Modifier
+                            </button>
+                            <button
+                              onClick={() => handleCancel(reservation.id)}
+                              className="px-4 py-2 border border-red-500/70 text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                            >
+                              Annuler
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   );
-                }
-                
-                return (
-                  <div className="grid gap-6 md:gap-8">
-                    {activeReservations.map((reservation) => (
-                      <div 
-                        key={reservation.id} 
-                        className="bg-[#2a2a2a]/50 rounded-xl border border-[#3a3a3a]/50 p-6 flex flex-col md:flex-row md:items-center justify-between"
-                      >
-                        <div className="flex-grow mb-4 md:mb-0">
-                          <div className="flex items-center mb-2">
-                            <span className="text-[#C4B5A2] text-xl font-semibold">{formatDate(reservation.date)}</span>
-                            <span className="ml-2 px-2 py-1 bg-[#C4B5A2]/20 rounded text-sm text-[#C4B5A2]">
-                              {reservation.time}
-                            </span>
-                          </div>
-                          <p className="text-gray-300">
-                            <span className="font-medium">{reservation.guests}</span> {reservation.guests > 1 ? 'personnes' : 'personne'}
-                          </p>
-                          {reservation.specialRequests && (
-                            <p className="text-gray-400 mt-2 text-sm">
-                              <span className="font-medium">Demandes spéciales :</span> {reservation.specialRequests}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-4">
-                          <button
-                            onClick={() => handleEdit(reservation)}
-                            className="px-4 py-2 border border-blue-500/70 text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
-                          >
-                            Modifier
-                          </button>
-                          <button
-                            onClick={() => handleCancel(reservation.id)}
-                            className="px-4 py-2 border border-red-500/70 text-red-400 hover:bg-red-500/10 rounded transition-colors"
-                          >
-                            Annuler
-                          </button>
-                        </div>
+                })()}
+              </>
+            )
+          ) : (
+            // Contenu pour les commandes de fruits de mer
+            seafoodOrders.length === 0 ? (
+              <div className="text-center py-12 bg-[#2a2a2a]/50 rounded-xl border border-[#3a3a3a]/50">
+                <h2 className="text-2xl font-medium text-gray-300 mb-4">Vous n'avez pas encore de commandes de fruits de mer</h2>
+                <p className="text-gray-400 mb-6">Commandez dès maintenant nos plateaux et compositions de fruits de mer !</p>
+                <button 
+                  onClick={() => router.push('/commander')}
+                  className="bg-[#C4B5A2] hover:bg-[#A69783] text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                >
+                  Commander des fruits de mer
+                </button>
+              </div>
+            ) : (
+              <>
+                {(() => {
+                  const activeOrders = filterPastOrders(seafoodOrders);
+                  
+                  if (activeOrders.length === 0) {
+                    return (
+                      <div className="text-center py-12 bg-[#2a2a2a]/50 rounded-xl border border-[#3a3a3a]/50">
+                        <h2 className="text-2xl font-medium text-gray-300 mb-4">Vous n'avez pas de commandes à venir</h2>
+                        <p className="text-gray-400 mb-6">Commandez dès maintenant nos plateaux et compositions de fruits de mer !</p>
+                        <button 
+                          onClick={() => router.push('/commander')}
+                          className="bg-[#C4B5A2] hover:bg-[#A69783] text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                        >
+                          Commander des fruits de mer
+                        </button>
                       </div>
-                    ))}
-                  </div>
-                );
-              })()}
-            </>
+                    );
+                  }
+                  
+                  return (
+                    <div className="grid gap-6 md:gap-8">
+                      {activeOrders.map((order) => (
+                        <div 
+                          key={order.id} 
+                          className="bg-[#2a2a2a]/50 rounded-xl border border-[#3a3a3a]/50 p-6"
+                        >
+                          <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
+                            <div className="flex-grow mb-4 md:mb-0">
+                              <div className="flex items-center mb-2">
+                                <span className="text-[#C4B5A2] text-xl font-semibold">{formatDate(order.pickupDate)}</span>
+                                <span className="ml-2 px-2 py-1 bg-[#C4B5A2]/20 rounded text-sm text-[#C4B5A2]">
+                                  {order.pickupTime}
+                                </span>
+                                <span className="ml-2 px-2 py-1 bg-green-500/20 rounded text-sm text-green-400">
+                                  {order.isPickup ? 'À emporter' : 'Livraison'}
+                                </span>
+                              </div>
+                              <p className="text-gray-300">
+                                <span className="font-medium">Total:</span> {order.totalPrice.toFixed(2)} €
+                              </p>
+                            </div>
+                            <div className="flex items-center space-x-4">
+                              <button
+                                onClick={() => handleEditOrder(order)}
+                                className="px-4 py-2 border border-blue-500/70 text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
+                              >
+                                Modifier
+                              </button>
+                              <button
+                                onClick={() => handleCancelOrder(order.id)}
+                                className="px-4 py-2 border border-red-500/70 text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                              >
+                                Annuler
+                              </button>
+                            </div>
+                          </div>
+                          
+                          {/* Détails de la commande */}
+                          <div className="mt-4 pt-4 border-t border-[#3a3a3a]">
+                            {order.plateaux.length > 0 && (
+                              <div className="mb-4">
+                                <h4 className="text-lg font-medium text-[#C4B5A2] mb-2">Plateaux</h4>
+                                <div className="space-y-2">
+                                  {order.plateaux.map((plateau, idx) => (
+                                    <div key={idx} className="flex justify-between">
+                                      <span>
+                                        {plateau.quantity} × {plateau.name}
+                                      </span>
+                                      <span className="text-gray-400">
+                                        {(plateau.quantity * plateau.price).toFixed(2)} €
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {order.items.length > 0 && (
+                              <div>
+                                <h4 className="text-lg font-medium text-[#C4B5A2] mb-2">Fruits de mer à l'unité</h4>
+                                <div className="space-y-2">
+                                  {order.items.map((item, idx) => (
+                                    <div key={idx} className="flex justify-between">
+                                      <span>
+                                        {item.quantity} × {item.name} {item.half ? '(demi-douzaine)' : ''}
+                                      </span>
+                                      <span className="text-gray-400">
+                                        {(item.quantity * item.price).toFixed(2)} €
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {order.specialRequests && (
+                              <div className="mt-4 text-gray-400 text-sm">
+                                <span className="font-medium">Demandes spéciales:</span> {order.specialRequests}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </>
+            )
           )}
         </div>
       </div>
@@ -626,6 +1155,53 @@ export default function MesReservationsPage() {
               </button>
               <button 
                 onClick={confirmDelete}
+                className="px-5 py-2 rounded bg-red-600/80 text-white hover:bg-red-700 transition-colors"
+              >
+                Oui, annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmation de suppression de commande */}
+      {confirmingOrderDelete !== null && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-[#2a2a2a] rounded-xl p-6 max-w-md w-full mx-4 border border-[#3a3a3a]/50 shadow-xl">
+            <div className="flex items-center text-amber-400 mb-4">
+              <div className="w-8 h-8 mr-3 flex items-center justify-center rounded-full bg-amber-400/20">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold">Confirmer l'annulation</h3>
+            </div>
+            
+            <p className="text-gray-300 mb-6 pl-11">
+              Êtes-vous sûr de vouloir annuler cette commande de fruits de mer ? Cette action est irréversible.
+            </p>
+            
+            <div className="mb-4 pl-11">
+              <label className="flex items-center text-gray-300">
+                <input 
+                  type="checkbox" 
+                  checked={sendNotification}
+                  onChange={(e) => setSendNotification(e.target.checked)}
+                  className="h-4 w-4 bg-[#3a3a3a] border-[#4a4a4a] rounded mr-2"
+                />
+                M'envoyer un SMS de confirmation
+              </label>
+            </div>
+            
+            <div className="flex justify-end gap-3 mt-6">
+              <button 
+                onClick={cancelOrderDelete}
+                className="px-5 py-2 rounded bg-transparent border border-gray-500 hover:bg-gray-700 transition-colors"
+              >
+                Non, garder
+              </button>
+              <button 
+                onClick={confirmOrderDelete}
                 className="px-5 py-2 rounded bg-red-600/80 text-white hover:bg-red-700 transition-colors"
               >
                 Oui, annuler
@@ -785,6 +1361,125 @@ export default function MesReservationsPage() {
                 <button
                   type="button"
                   onClick={() => setShowEditModal(false)}
+                  className="px-5 py-2 rounded bg-transparent border border-gray-500 hover:bg-gray-700 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 py-2 rounded bg-[#C4B5A2] hover:bg-[#A69783] text-black font-medium transition-colors disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Modification en cours...' : 'Enregistrer'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal de modification de commande de fruits de mer */}
+      {showEditOrderModal && (
+        <Modal 
+          title={`Commande de fruits de mer du ${new Date(editOrderFormData.pickupDate).toLocaleDateString('fr-FR', { 
+            day: 'numeric', 
+            month: 'long', 
+            year: 'numeric' 
+          })}`}
+          onClose={() => setShowEditOrderModal(false)}
+        >
+          <div className="space-y-6">
+            <h3 className="text-xl font-medium">Modifier votre commande</h3>
+            
+            <form onSubmit={handleEditOrderSubmit} className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Date de retrait*</label>
+                  <input
+                    type="date"
+                    name="pickupDate"
+                    value={editOrderFormData.pickupDate}
+                    onChange={handleEditOrderFormChange}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full p-2 rounded bg-[#333333] border border-[#4a4a4a] focus:outline-none focus:ring-2 focus:ring-[#C4B5A2]"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-1">Heure de retrait*</label>
+                  <select
+                    name="pickupTime"
+                    value={editOrderFormData.pickupTime}
+                    onChange={handleEditOrderFormChange}
+                    className="w-full p-2 rounded bg-[#333333] border border-[#4a4a4a] focus:outline-none focus:ring-2 focus:ring-[#C4B5A2]"
+                    required
+                  >
+                    {[
+                      '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00',
+                      '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00'
+                    ].map(time => (
+                      <option key={time} value={time}>{time}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Mode de récupération*</label>
+                <div className="flex space-x-4 mt-2">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="isPickup"
+                      value="true"
+                      checked={editOrderFormData.isPickup === true}
+                      onChange={handleEditOrderFormChange}
+                      className="h-4 w-4 mr-2"
+                    />
+                    <span>À emporter</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="isPickup"
+                      value="false"
+                      checked={editOrderFormData.isPickup === false}
+                      onChange={handleEditOrderFormChange}
+                      className="h-4 w-4 mr-2"
+                    />
+                    <span>Livraison</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Demandes spéciales</label>
+                <textarea
+                  name="specialRequests"
+                  value={editOrderFormData.specialRequests || ''}
+                  onChange={handleEditOrderFormChange}
+                  className="w-full p-2 rounded bg-[#333333] border border-[#4a4a4a] focus:outline-none focus:ring-2 focus:ring-[#C4B5A2] min-h-[100px]"
+                  placeholder="Instructions particulières pour votre commande..."
+                />
+              </div>
+              
+              <div>
+                <label className="flex items-center text-gray-300">
+                  <input 
+                    type="checkbox" 
+                    checked={sendNotification}
+                    onChange={(e) => setSendNotification(e.target.checked)}
+                    className="h-4 w-4 bg-[#3a3a3a] border-[#4a4a4a] rounded mr-2"
+                  />
+                  M'envoyer un SMS de confirmation
+                </label>
+              </div>
+              
+              <div className="flex justify-between pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowEditOrderModal(false)}
                   className="px-5 py-2 rounded bg-transparent border border-gray-500 hover:bg-gray-700 transition-colors"
                 >
                   Annuler
