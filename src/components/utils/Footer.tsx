@@ -37,7 +37,7 @@ export default function Footer() {
                 <div className="flex items-start justify-center">
                   <Clock className="w-4 h-4 mr-2 text-[#C4B5A2] mt-1 flex-shrink-0" />
                   <div className="text-white text-sm sm:text-base">
-                    <p>Mar - Dim: 12h00 - 14h30</p>
+                    <p>Lun - Dim: 12h00 - 14h30</p>
                     <p>Mer - Sam: 19h00 - 22h30</p>
                   </div>
                 </div>
