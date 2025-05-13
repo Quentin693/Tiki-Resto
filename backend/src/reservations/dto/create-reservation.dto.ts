@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsNumber, IsString, Min, Max, IsOptional, IsDateString, Matches } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsNumber, IsString, Min, Max, IsOptional, IsDateString, Matches, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 
@@ -27,7 +27,9 @@ export class CreateReservationDto {
   @IsNotEmpty()
   @IsNumber()
   @Min(1)
-  @Max(20)
+  @Max(20, { 
+    message: 'Le nombre de convives ne peut pas dépasser 20 personnes pour une réservation normale. Pour les événements, activez l\'option isEvent.'
+  })
   numberOfGuests: number;
 
   @ApiProperty({ example: '2023-04-01T19:30:00Z', description: 'Date et heure de la réservation' })
@@ -49,4 +51,9 @@ export class CreateReservationDto {
   @IsNotEmpty()
   @IsDateString()
   createdAt: string;
+  
+  @ApiProperty({ example: false, description: 'Indique si c\'est un événement (permet >20 personnes)', required: false })
+  @IsOptional()
+  @IsBoolean()
+  isEvent?: boolean;
 } 

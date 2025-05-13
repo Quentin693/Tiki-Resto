@@ -3,9 +3,13 @@ import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@ne
 import { ReservationsService } from './reservations.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
+import { AdminUpdateReservationDto } from './dto/admin-update-reservation.dto';
 import { Reservation } from './entities/reservation.entity';
 import { TimeSlotsResponseDto } from './dto/time-slot.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../auth/enums/role.enum';
 
 @ApiTags('reservations')
 @Controller('reservations')
@@ -93,7 +97,6 @@ export class ReservationsController {
   @Patch(':id')
   @ApiOperation({ summary: 'Mettre à jour une réservation' })
   @ApiResponse({ status: 200, description: 'La réservation a été mise à jour avec succès.', type: Reservation })
-  @ApiResponse({ status: 400, description: 'Créneau indisponible ou capacité dépassée.' })
   @ApiResponse({ status: 404, description: 'Réservation non trouvée.' })
   update(@Param('id') id: string, @Body() updateReservationDto: UpdateReservationDto) {
     return this.reservationsService.update(+id, updateReservationDto);
@@ -126,5 +129,24 @@ export class ReservationsController {
       this.logger.error(`Contrôleur - Erreur lors de la recherche des réservations par contact: ${error.message}`);
       throw error;
     }
+  }
+}
+
+@ApiTags('admin')
+@Controller('admin/reservations')
+export class AdminReservationsController {
+  private readonly logger = new Logger(AdminReservationsController.name);
+
+  constructor(private readonly reservationsService: ReservationsService) {}
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin)
+  @ApiOperation({ summary: 'Mettre à jour les champs administratifs d\'une réservation' })
+  @ApiResponse({ status: 200, description: 'La réservation a été mise à jour avec succès.', type: Reservation })
+  @ApiResponse({ status: 403, description: 'Accès interdit - Nécessite les droits administrateur.' })
+  @ApiResponse({ status: 404, description: 'Réservation non trouvée.' })
+  adminUpdate(@Param('id') id: string, @Body() adminUpdateReservationDto: AdminUpdateReservationDto) {
+    return this.reservationsService.adminUpdate(+id, adminUpdateReservationDto);
   }
 } 

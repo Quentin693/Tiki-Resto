@@ -119,6 +119,13 @@ export default function SpacesSection() {
       description: "Vivez des soirées magiques autour de notre brasero. Cet espace extérieur unique est idéal pour prolonger la soirée dans une ambiance chaleureuse et conviviale. Dégustez nos cocktails maison et laissez-vous bercer par le bruit des vagues tout en profitant de la chaleur du feu.",
       imagePath: "/CoinAfterwork.jpg",
       imageAlt: "Espace brasero en bord de mer pour les soirées"
+    },
+    {
+      number: "05",
+      title: "Le Coin Pétanque",
+      description: "Quoi de mieux qu'un petit apéro, d'un coucher de soleil et d'un match de pétanque ?",
+      imagePath: "/pétanque.jpg",
+      imageAlt: "Espace pétanque en bord de mer pour les soirées"
     }
   ];
 

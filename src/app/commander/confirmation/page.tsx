@@ -7,7 +7,7 @@ import { CheckCircle, ArrowLeft, Calendar, Clock, MapPin } from 'lucide-react';
 
 export default function ConfirmationPage() {
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-white relative pt-24 pb-16">
+    <div className="min-h-screen mt-24 bg-[#0f0f0f] text-white relative pt-24 pb-16">
       {/* Background avec feuilles décoratives */}
       <div className="absolute inset-0 flex z-0 pointer-events-none overflow-hidden">
         <div className="w-[15%] sm:w-[20%] md:w-[25%] relative">
@@ -34,7 +34,7 @@ export default function ConfirmationPage() {
       </div>
 
       {/* Contenu principal */}
-      <div className="container mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="container mt-40 mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 relative z-10">
         <Link 
           href="/" 
           className="inline-flex items-center gap-2 text-[#e8dcc5] hover:text-white mb-8 group transition-colors"
@@ -74,7 +74,7 @@ export default function ConfirmationPage() {
           <div className="bg-[#16140e] p-4 rounded-lg text-sm text-gray-400 mb-8">
             <p>
               Pour toute modification ou annulation, merci de nous contacter directement par téléphone
-              au <span className="text-[#e8dcc5]">04 81 91 51 67</span> au moins 24h à l'avance.
+              au <span className="text-[#e8dcc5]">04 78 49 02 39</span> au moins 24h à l'avance.
             </p>
           </div>
           

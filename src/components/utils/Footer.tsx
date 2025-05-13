@@ -1,10 +1,15 @@
+"use client"
+
 import { Menu, X, Instagram, Facebook, Clock, MapPin, Phone, Mail } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export default function Footer() {
+    const pathname = usePathname();
+    
     return (
-        <footer className="bg-[#1a1a1a] border-t border-#C4B5A2 z-50">
+        <footer className="bg-[#1a1a1a] border-t border-#C4B5A2 z-[1000] relative">
         <div className="container mx-auto px-4 py-8 sm:py-12">
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
@@ -64,38 +69,42 @@ export default function Footer() {
               {/* Liens légaux en tableau 2x2 */}
               <div className="mb-4 sm:mb-0">
                 <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-                  <Link 
+                  <a 
                     href="/mentions-legales" 
-                    className="text-gray-400 hover:text-[#C4B5A2] text-xs sm:text-sm transition-colors duration-300"
-                    prefetch={false}
-                    passHref
+                    className="text-gray-400 hover:text-[#C4B5A2] text-xs sm:text-sm transition-colors duration-300 relative z-[1001] pointer-events-auto"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
                   >
                     Mentions légales
-                  </Link>
-                  <Link 
+                  </a>
+                  <a 
                     href="/politique-confidentialite" 
-                    className="text-gray-400 hover:text-[#C4B5A2] text-xs sm:text-sm transition-colors duration-300"
-                    prefetch={false}
-                    passHref
+                    className="text-gray-400 hover:text-[#C4B5A2] text-xs sm:text-sm transition-colors duration-300 relative z-[1001] pointer-events-auto"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
                   >
                     Politique de confidentialité
-                  </Link>
-                  <Link 
+                  </a>
+                  <a 
                     href="/cookies" 
-                    className="text-gray-400 hover:text-[#C4B5A2] text-xs sm:text-sm transition-colors duration-300"
-                    prefetch={false}
-                    passHref
+                    className="text-gray-400 hover:text-[#C4B5A2] text-xs sm:text-sm transition-colors duration-300 relative z-[1001] pointer-events-auto"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
                   >
                     Gestion des cookies
-                  </Link>
-                  <Link 
+                  </a>
+                  <a 
                     href="/conditions-utilisation" 
-                    className="text-gray-400 hover:text-[#C4B5A2] text-xs sm:text-sm transition-colors duration-300"
-                    prefetch={false}
-                    passHref
+                    className="text-gray-400 hover:text-[#C4B5A2] text-xs sm:text-sm transition-colors duration-300 relative z-[1001] pointer-events-auto"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
                   >
                     CGU
-                  </Link>
+                  </a>
                 </div>
               </div>
 

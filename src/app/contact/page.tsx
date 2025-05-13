@@ -3,7 +3,42 @@
 import React, { useRef, useState } from "react";
 import { Phone, Mail, Clock, MapPin, Send, CheckCircle, X, Anchor, Palmtree } from "lucide-react";
 import Image from "next/image";
-import emailjs from "@emailjs/browser";
+import Notifications from "@/components/Notifications";
+
+// Type definitions to fix linter errors
+type ToastProps = {
+  message: string;
+  type: 'success' | 'error';
+  onClose: () => void;
+}
+
+type ContactInfoProps = {
+  icon: React.ReactNode;
+  title: string;
+  info: React.ReactNode;
+}
+
+type TextFieldProps = {
+  id: string;
+  name: string;
+  label: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+  type?: string;
+}
+
+type TextAreaProps = {
+  id: string;
+  name: string;
+  label: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+}
+
+type SubmitButtonProps = {
+  submitted: boolean;
+}
 
 // Composant GoogleMap
 const GoogleMap = () => (
@@ -30,7 +65,7 @@ const GoogleMap = () => (
 );
 
 // Composant Toast
-const Toast = ({ message, type, onClose }) => (
+const Toast = ({ message, type, onClose }: ToastProps) => (
   <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg flex items-center gap-2 ${
     type === 'success' ? 'bg-green-500' : 'bg-red-500'
   } text-white`}>
@@ -43,7 +78,7 @@ const Toast = ({ message, type, onClose }) => (
 );
 
 // Composant Info Contact
-const ContactInfo = ({ icon, title, info }) => (
+const ContactInfo = ({ icon, title, info }: ContactInfoProps) => (
   <div className="flex items-start gap-4">
     <div className="p-2 rounded-full border border-[#C4B5A2]">{icon}</div>
     <div>
@@ -54,7 +89,7 @@ const ContactInfo = ({ icon, title, info }) => (
 );
 
 // Composant Champ de texte
-const TextField = ({ id, name, label, value, onChange, placeholder, type = "text" }) => (
+const TextField = ({ id, name, label, value, onChange, placeholder, type = "text" }: TextFieldProps) => (
   <div>
     <label htmlFor={id} className="block text-sm font-medium mb-2">
       {label}
@@ -73,7 +108,7 @@ const TextField = ({ id, name, label, value, onChange, placeholder, type = "text
 );
 
 // Composant Zone de texte
-const TextArea = ({ id, name, label, value, onChange }) => (
+const TextArea = ({ id, name, label, value, onChange }: TextAreaProps) => (
   <div>
     <label htmlFor={id} className="block text-sm font-medium mb-2">
       {label}
@@ -92,7 +127,7 @@ const TextArea = ({ id, name, label, value, onChange }) => (
 );
 
 // Composant Bouton d'envoi
-const SubmitButton = ({ submitted }) => (
+const SubmitButton = ({ submitted }: SubmitButtonProps) => (
   <button
     type="submit"
     className="w-full bg-[#C4B5A2] hover:bg-[#A69783] text-black font-medium px-6 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
@@ -117,42 +152,61 @@ export default function ContactPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "",
+    subject: "Message depuis le site web",
     message: "",
   });
   const [submitted, setSubmitted] = useState(false);
-  const [toast, setToast] = useState(null);
-  const form = useRef(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const showToast = (message, type) => {
+  const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 5000);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    emailjs
-      .sendForm(
-        "service_w43hhbe",
-        "template_xb59ysa",
-        form.current,
-        "qGukIkoXy-BXaqm2L"
-      )
-      .then(
-        () => {
-          showToast("Message envoyé avec succès !", "success");
-          setSubmitted(true);
-          setTimeout(() => setSubmitted(false), 3000);
-          setFormData({ name: "", email: "", message: "" });
+    
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    setSubmitted(true);
+    
+    try {
+      // Utiliser le système de notifications
+      await Notifications.notify({
+        type: 'contact',
+        data: {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone || undefined,
+          subject: formData.subject,
+          message: formData.message
         },
-        (error) => {
-          showToast("Une erreur s'est produite. Veuillez réessayer.", "error");
-          console.error("Error:", error);
-        }
-      );
+        sendSMS: false, // Pas de SMS pour les formulaires de contact
+        sendEmail: true
+      });
+      
+      // Toujours afficher un succès car le mail est bien envoyé
+      showToast("Message envoyé avec succès !", "success");
+      setFormData({ 
+        name: "", 
+        email: "", 
+        phone: "", 
+        subject: "Message depuis le site web", 
+        message: "" 
+      });
+    } catch (error) {
+      console.error("Erreur lors de l'envoi du message:", error);
+      showToast("Une erreur s'est produite. Veuillez réessayer.", "error");
+    } finally {
+      setIsSubmitting(false);
+      setTimeout(() => setSubmitted(false), 3000);
+    }
   };
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -221,10 +275,7 @@ export default function ContactPage() {
               {/* Colonne de gauche */}
               <div className="space-y-8">
                 <div className="bg-[#2a2a2a]/90 rounded-xl shadow-lg overflow-hidden border border-[#C4B5A2]/20">
-                  <GoogleMap 
-                    locationName="TIKI au bord de l'eau"
-                    decorative={true}
-                  />
+                  <GoogleMap />
                 </div>
 
                 <div className="bg-[#2a2a2a]/90 rounded-xl p-8 space-y-6 border border-[#C4B5A2]/20 shadow-xl">
@@ -254,7 +305,7 @@ export default function ContactPage() {
               {/* Colonne de droite - Formulaire */}
               <div className="bg-[#2a2a2a]/90 rounded-xl p-8 border border-[#C4B5A2]/20 shadow-xl">
                 <h2 className="text-2xl font-bold mb-6">Envoyez-nous un message</h2>
-                <form ref={form} onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
                   <TextField
                     id="name"
                     name="name"
@@ -271,6 +322,23 @@ export default function ContactPage() {
                     onChange={handleChange}
                     placeholder="votre@email.com"
                     type="email"
+                  />
+                  <TextField
+                    id="phone"
+                    name="phone"
+                    label="Téléphone (optionnel)"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="+33612345678"
+                    type="tel"
+                  />
+                  <TextField
+                    id="subject"
+                    name="subject"
+                    label="Sujet"
+                    value={formData.subject}
+                    onChange={handleChange}
+                    placeholder="Objet de votre message"
                   />
                   <TextArea
                     id="message"

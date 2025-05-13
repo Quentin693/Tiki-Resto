@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ParseUUIDPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ParseUUIDPipe, UseGuards, ParseIntPipe } from '@nestjs/common';
 import { SeafoodOrdersService } from './seafood-orders.service';
 import { CreateSeafoodOrderDto } from './dto/create-seafood-order.dto';
 import { UpdateSeafoodOrderDto } from './dto/update-seafood-order.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Commandes de fruits de mer')
@@ -25,6 +25,27 @@ export class SeafoodOrdersController {
   @ApiResponse({ status: 200, description: 'Retourne la liste des commandes' })
   findAll() {
     return this.seafoodOrdersService.findAll();
+  }
+
+  @Get('user/:userId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Récupérer les commandes d\'un utilisateur' })
+  @ApiResponse({ status: 200, description: 'Retourne les commandes de l\'utilisateur' })
+  findByUser(@Param('userId', ParseIntPipe) userId: number) {
+    return this.seafoodOrdersService.findByUser(userId);
+  }
+
+  @Get('search')
+  @ApiOperation({ summary: 'Rechercher des commandes par email ou téléphone' })
+  @ApiResponse({ status: 200, description: 'Retourne les commandes correspondantes' })
+  @ApiQuery({ name: 'email', required: false, type: String })
+  @ApiQuery({ name: 'phone', required: false, type: String })
+  search(
+    @Query('email') email?: string,
+    @Query('phone') phone?: string,
+  ) {
+    return this.seafoodOrdersService.search(email, phone);
   }
 
   @Get(':id')

@@ -6,6 +6,7 @@ import { CalendarDays, Clock, Users, Phone, Mail, MapPin, ArrowLeft } from 'luci
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
+import Notifications from '@/components/Notifications';
 import { seafoodOrdersService } from '../api/seafood-orders';
 import emailjs from '@emailjs/browser';
 
@@ -244,6 +245,20 @@ export default function CommanderPage() {
     try {
       setIsSubmitting(true);
       
+      // Vérifier si l'utilisateur est connecté
+      let userId = null;
+      try {
+        // On récupère le token depuis localStorage
+        const token = localStorage.getItem('token');
+        if (token) {
+          // Décoder le token pour obtenir l'ID utilisateur
+          const decodedToken = JSON.parse(atob(token.split('.')[1]));
+          userId = decodedToken.id;
+        }
+      } catch (error) {
+        console.log('Non connecté ou erreur lors de la récupération du user ID');
+      }
+      
       // Construction de la commande complète
       const orderData = {
         customer: { name, phone, email },
@@ -270,50 +285,72 @@ export default function CommanderPage() {
           isPickup
         },
         specialRequests,
-        totalPrice: calculateTotal()
+        totalPrice: calculateTotal(),
+        userId: userId // Ajouter l'ID utilisateur à la commande si connecté
       };
       
       // Envoi à l'API
       const createdOrder = await seafoodOrdersService.createOrder(orderData);
       
-      // Préparation des données pour les notifications
-      const orderDetails = {
-        order_id: createdOrder.id,
-        customer_name: name,
-        customer_phone: phone,
-        customer_email: email,
-        pickup_date: date,
-        pickup_time: time,
-        is_pickup: isPickup ? "À emporter" : "Sur place",
+      // Préparation des données détaillées pour l'email
+      const detailedData = {
+        customerName: name,
+        customerEmail: email,
+        customerPhone: phone,
+        pickupDate: date,
+        pickupTime: time,
+        isPickup: isPickup,
+        specialRequests: specialRequests,
+        totalPrice: calculateTotal(),
+        
+        // Information sur les plateaux
         plateaux: hasSelectedPlateau && selectedPlateau ? 
-          `${plateaux.find(p => p.id === selectedPlateau)?.name} (${quantity})` : "Aucun",
+          [{
+            id: selectedPlateau,
+            name: plateaux.find(p => p.id === selectedPlateau)?.name || 'Plateau',
+            quantity,
+            price: plateaux.find(p => p.id === selectedPlateau)?.price || 0
+          }] : [],
+        
+        // Information sur les produits individuels
         items: Object.entries(selectedItems).map(([id, details]) => {
           const product = produitsIndividuels.find(p => p.id === id);
+          return {
+            id,
+            name: product?.name || 'Produit',
+            quantity: details.quantity,
+            half: !!details.half,
+            price: getItemPrice(id, details.half) || 0
+          };
+        }),
+        
+        // Chaînes formatées pour faciliter l'affichage
+        plateauxStr: hasSelectedPlateau && selectedPlateau ? 
+          `${plateaux.find(p => p.id === selectedPlateau)?.name} (${quantity})` : "Aucun",
+        itemsStr: Object.entries(selectedItems).map(([id, details]) => {
+          const product = produitsIndividuels.find(p => p.id === id);
           return `${product?.name} ${details.half ? "(demi-douzaine)" : ""} (${details.quantity})`;
-        }).join(", "),
-        special_requests: specialRequests || "Aucune demande spéciale",
-        total_price: calculateTotal().toFixed(2) + " €"
+        }).join(", ")
       };
       
-      // 1. Envoyer un SMS au client via l'API backend qui utilise Twilio
-      await fetch('/api/send-sms', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          to: phone,
-          message: `Bonjour ${name}, votre commande chez TIKI au bord de l'eau a bien été enregistrée pour le ${date} à ${time}. Montant total: ${calculateTotal().toFixed(2)}€. À bientôt!`
-        }),
-      });
+      // Calculer le nombre total de produits
+      const totalItems = Object.values(selectedItems).reduce((sum, item) => sum + item.quantity, 0) + (selectedPlateau ? quantity : 0);
       
-      // 2. Envoyer un email avec les détails de la commande via EmailJS
-      await emailjs.send(
-        "service_w43hhbe", // Remplacer par votre service ID
-        "template_order_confirmation", // Créer un template pour les commandes
-        orderDetails,
-        "qGukIkoXy-BXaqm2L" // Remplacer par votre user ID
-      );
+      // 1. Envoyer un SMS au client via l'API backend qui utilise Twilio
+      await Notifications.notify({
+        type: 'seafood',
+        data: detailedData,
+        sendSMS: true,
+        sendEmail: false
+      });
+
+      // 2. Envoyer un email au client via l'API backend qui utilise EmailJS
+      await Notifications.notify({
+        type: 'seafood',
+        data: detailedData,
+        sendSMS: false,
+        sendEmail: true
+      });
       
       toast.success('Votre commande a été envoyée avec succès');
       
@@ -368,25 +405,39 @@ export default function CommanderPage() {
         </div>
       </div>
 
+      {/* Bandeau d'image */}
+
       {/* Contenu principal */}
-      <div className="container mt-40 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="container mt-40 mx-auto max-w-6xl px-8 py-8 relative z-10">
         <Link 
           href="/" 
-          className="inline-flex items-center gap-2 text-[#e8dcc5] hover:text-white mb-8 group transition-colors absolute left-4 sm:left-6 lg:left-8 top-0"
+          className="inline-flex items-center gap-2 text-[#e8dcc5] hover:text-white mb-8 group transition-colors"
         >
           <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
           <span className="font-didot text-sm sm:text-base">Retour à l'accueil</span>
         </Link>
 
-        <div className="text-center mb-12">
-          <span className="font-allura text-3xl md:text-4xl text-[#e8dcc5]/80">Saveurs de l 'océan</span>
-          <h1 className="font-didot text-5xl sm:text-6xl text-[#e8dcc5] mt-2 mb-6">Bar à Fruits de Mer</h1>
-          <div className="w-24 h-[1px] bg-[#e8dcc5]/50 mx-auto"></div>
-          <p className="text-gray-300 max-w-2xl mx-auto mt-6">
-            Réservez vos plateaux et produits de la mer 48h à l'avance pour emporter ou sur place.
-            Tous nos produits sont frais et sélectionnés avec soin.
-          </p>
+        {/* Titre avec bordure beige et arrondie */}
+        <div className="relative w-full/80 h-[300px] border border-[#e8dcc5]/80   mb-8 rounded-xl overflow-hidden">
+        <Image
+          src="/FruitsdeMer.jpg"
+          alt="Bar à Fruits de Mer"
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-black/40" />
+        <div className="absolute bottom-0 left-0 right-0 p-8">
+          <h1 className="text-7xl font-didot">Tiki Au Bord de l'Eau</h1>
+          <p className="text-4xl font-allura text-[#e8dcc5]">Bar à Fruits de Mer</p>
         </div>
+      </div>
+
+        {/* Texte d'introduction */}
+        <p className="text-gray-300 max-w-2xl mx-auto text-center mb-12">
+          Réservez vos plateaux et produits de la mer 48h à l'avance pour emporter ou sur place.<br />
+          Tous nos produits sont frais et sélectionnés avec soin.
+        </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mb-12">
           {/* Sélections - 3 colonnes */}
@@ -412,22 +463,13 @@ export default function CommanderPage() {
                       }
                     `}
                   >
-                    <div className="relative h-40">
-                      <Image
-                        src={plateau.image}
-                        alt={plateau.name}
-                        fill
-                        className="object-cover"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                      <div className="absolute bottom-2 left-3 right-3 flex justify-between items-end">
-                        <h3 className="text-white font-medium text-lg">{plateau.name}</h3>
+                    <div className="p-4 bg-[#1a1a1a]">
+                      <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-[#e8dcc5] font-medium text-lg">{plateau.name}</h3>
                         <span className="text-[#e8dcc5] font-bold">
                           {plateau.price}€
                         </span>
                       </div>
-                    </div>
-                    <div className="p-3 bg-[#1a1a1a]">
                       <p className="text-gray-400 text-sm">{plateau.description}</p>
                       <p className="text-xs text-gray-500 mt-2">
                         Pour {plateau.min} {plateau.min > 1 ? 'personnes' : 'personne'}
@@ -754,6 +796,10 @@ export default function CommanderPage() {
                   <p className="text-xs text-gray-500 mt-2 text-center">
                     * Champs obligatoires. Veuillez réserver 48h à l'avance.
                   </p>
+                  
+                  <div className="text-xs text-gray-400 mt-4 p-3 bg-[#222] rounded-md border border-[#444]">
+                    <p>✓ Votre commande sera automatiquement ajoutée au calendrier pour permettre à l'équipe de mieux préparer votre réception.</p>
+                  </div>
                 </div>
               </form>
             </div>

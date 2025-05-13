@@ -13,6 +13,13 @@ export interface Reservation {
   specialRequests?: string;
   createdAt?: string;
   updatedAt?: string;
+  tableNumber?: number;
+  isArrived?: boolean;
+}
+
+export interface ReservationForAdmin extends Reservation {
+  tableNumber?: number;
+  isArrived?: boolean;
 }
 
 export interface TimeSlot {

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -6,6 +6,7 @@ import * as twilio from 'twilio';
 import { Reservation } from './entities/reservation.entity';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
+import { AdminUpdateReservationDto } from './dto/admin-update-reservation.dto';
 import { TimeSlotDto, TimeSlotsResponseDto } from './dto/time-slot.dto';
 
 // Définir la capacité maximale du restaurant par créneau
@@ -14,6 +15,7 @@ const MAX_CAPACITY_PER_SLOT = 30;
 @Injectable()
 export class ReservationsService {
   private twilioClient: twilio.Twilio;
+  private readonly logger = new Logger(ReservationsService.name);
 
   constructor(
     @InjectRepository(Reservation)
@@ -67,7 +69,13 @@ Pour modifier ou annuler votre réservation, créez un compte avec ce lien: ${si
   }
 
   // Vérifier la disponibilité pour un créneau spécifique
-  private async checkAvailability(dateTime: Date, numberOfGuests: number): Promise<boolean> {
+  private async checkAvailability(dateTime: Date, numberOfGuests: number, isEvent: boolean = false): Promise<boolean> {
+    // Si c'est un événement, on ignore la vérification de capacité
+    if (isEvent) {
+      console.log('Événement détecté - Validation de capacité ignorée pour:', dateTime, numberOfGuests, 'personnes');
+      return true;
+    }
+    
     // Récupérer les réservations à l'heure exacte
     const hours = dateTime.getHours();
     const minutes = dateTime.getMinutes();
@@ -154,10 +162,25 @@ Pour modifier ou annuler votre réservation, créez un compte avec ce lien: ${si
   async create(createReservationDto: CreateReservationDto): Promise<Reservation> {
     const reservationDateTime = new Date(createReservationDto.reservationDateTime);
     
+    // Détecter si c'est un événement, soit par le flag isEvent, soit par le nombre de personnes > 20
+    const isEvent = Boolean(createReservationDto.isEvent) || 
+                   createReservationDto.numberOfGuests > 20 || 
+                   (createReservationDto.specialRequests && 
+                    typeof createReservationDto.specialRequests === 'string' && 
+                    createReservationDto.specialRequests.toLowerCase().includes('événement'));
+    
+    console.log(`Création réservation: ${createReservationDto.numberOfGuests} personnes, isEvent: ${isEvent}`);
+    
+    // Si c'est un événement avec plus de 20 personnes, on vérifie si plusieurs créneaux sont nécessaires
+    if (isEvent && createReservationDto.numberOfGuests > 20) {
+      console.log(`Événement détecté avec ${createReservationDto.numberOfGuests} personnes`);
+    }
+    
     // Vérifier si le créneau est disponible
     const isAvailable = await this.checkAvailability(
       reservationDateTime, 
-      createReservationDto.numberOfGuests
+      createReservationDto.numberOfGuests,
+      Boolean(isEvent) // Convertir explicitement en boolean
     );
     
     if (!isAvailable) {
@@ -247,37 +270,71 @@ Pour modifier ou annuler votre réservation, créez un compte avec ce lien: ${si
   async update(id: number, updateReservationDto: UpdateReservationDto): Promise<Reservation> {
     const reservation = await this.findOne(id);
     
-    // Si la mise à jour concerne le nombre de convives ou la date/heure
-    if (
-      (updateReservationDto.numberOfGuests && updateReservationDto.numberOfGuests !== reservation.numberOfGuests) ||
-      (updateReservationDto.reservationDateTime && updateReservationDto.reservationDateTime !== reservation.reservationDateTime.toISOString())
-    ) {
-      const newDateTime = updateReservationDto.reservationDateTime 
-        ? new Date(updateReservationDto.reservationDateTime)
-        : reservation.reservationDateTime;
-        
-      const newGuestCount = updateReservationDto.numberOfGuests || reservation.numberOfGuests;
+    // Pour empêcher la mise à jour des champs admin via cet endpoint
+    if (updateReservationDto.hasOwnProperty('tableNumber') || updateReservationDto.hasOwnProperty('isArrived')) {
+      this.logger.warn(`Tentative de mise à jour des champs admin via l'endpoint standard pour réservation #${id}`);
+      const { tableNumber, isArrived, ...safeUpdateData } = updateReservationDto as any;
+      Object.assign(reservation, safeUpdateData);
+    } else {
+      Object.assign(reservation, updateReservationDto);
+    }
+    
+    // Si la date et l'heure ont changé, vérifier la disponibilité
+    if (updateReservationDto.reservationDateTime) {
+      const newDateTime = new Date(updateReservationDto.reservationDateTime);
+      const oldDateTime = new Date(reservation.reservationDateTime);
       
-      // Vérifier si le nouveau créneau est disponible
-      const isAvailable = await this.checkAvailability(newDateTime, newGuestCount);
-      
-      if (!isAvailable) {
-        throw new BadRequestException(
-          'Ce créneau n\'est plus disponible ou la capacité est dépassée. Veuillez choisir un autre horaire.'
+      // Ne vérifier que si la date/heure a réellement changé
+      if (newDateTime.getTime() !== oldDateTime.getTime()) {
+        // Vérifier si le nouveau créneau est disponible
+        const isAvailable = await this.checkAvailability(
+          newDateTime, 
+          updateReservationDto.numberOfGuests || reservation.numberOfGuests,
+          Boolean(reservation.isEvent)
         );
+        
+        if (!isAvailable) {
+          throw new BadRequestException(
+            'Ce créneau n\'est plus disponible ou la capacité est dépassée. Veuillez choisir un autre horaire.'
+          );
+        }
+        
+        // Mettre à jour la date/heure
+        reservation.reservationDateTime = newDateTime;
       }
     }
+    
+    return this.reservationsRepository.save(reservation);
+  }
 
-    const updatedReservation = {
-      ...reservation,
-      ...updateReservationDto
-    };
-
-    return await this.reservationsRepository.save(updatedReservation);
+  /**
+   * Mettre à jour les champs administratifs d'une réservation
+   * Cette méthode est réservée aux administrateurs
+   */
+  async adminUpdate(id: number, adminUpdateDto: AdminUpdateReservationDto): Promise<Reservation> {
+    this.logger.log(`Service: Mise à jour admin de la réservation #${id}: ${JSON.stringify(adminUpdateDto)}`);
+    
+    const reservation = await this.findOne(id);
+    
+    // Vérifier si nous avons des données à mettre à jour
+    if (adminUpdateDto.tableNumber !== undefined) {
+      reservation.tableNumber = adminUpdateDto.tableNumber;
+      this.logger.log(`Réservation #${id}: Numéro de table mis à jour -> ${adminUpdateDto.tableNumber}`);
+    }
+    
+    if (adminUpdateDto.isArrived !== undefined) {
+      reservation.isArrived = adminUpdateDto.isArrived;
+      this.logger.log(`Réservation #${id}: Statut d'arrivée mis à jour -> ${adminUpdateDto.isArrived}`);
+    }
+    
+    const updatedReservation = await this.reservationsRepository.save(reservation);
+    this.logger.log(`Réservation #${id} mise à jour avec succès`);
+    
+    return updatedReservation;
   }
 
   async remove(id: number): Promise<void> {
     const reservation = await this.findOne(id);
-    await this.reservationsRepository.delete(id);
+    await this.reservationsRepository.remove(reservation);
   }
 } 

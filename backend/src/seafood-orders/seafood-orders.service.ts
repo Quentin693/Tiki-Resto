@@ -40,6 +40,11 @@ export class SeafoodOrdersService {
     newOrder.specialRequests = createOrderDto.specialRequests ?? null;
     newOrder.totalPrice = createOrderDto.totalPrice;
     newOrder.status = OrderStatus.PENDING;
+    
+    // Ajouter l'ID utilisateur s'il est fourni
+    if (createOrderDto.userId) {
+      newOrder.userId = createOrderDto.userId;
+    }
 
     // Sauvegarder la commande pour obtenir l'ID
     const savedOrder = await this.ordersRepository.save(newOrder);
@@ -83,6 +88,38 @@ export class SeafoodOrdersService {
     });
   }
 
+  async findByUser(userId: number): Promise<SeafoodOrder[]> {
+    return this.ordersRepository.find({
+      where: { userId },
+      relations: ['items', 'plateaux'],
+      order: {
+        createdAt: 'DESC'
+      }
+    });
+  }
+
+  async search(email?: string, phone?: string): Promise<SeafoodOrder[]> {
+    if (!email && !phone) {
+      return [];
+    }
+    
+    const query = this.ordersRepository.createQueryBuilder('order');
+    
+    if (email) {
+      query.orWhere('order.customerEmail = :email', { email });
+    }
+    
+    if (phone) {
+      query.orWhere('order.customerPhone = :phone', { phone });
+    }
+    
+    return query
+      .leftJoinAndSelect('order.items', 'items')
+      .leftJoinAndSelect('order.plateaux', 'plateaux')
+      .orderBy('order.createdAt', 'DESC')
+      .getMany();
+  }
+
   async findOne(id: string): Promise<SeafoodOrder> {
     const order = await this.ordersRepository.findOne({ 
       where: { id },
@@ -101,6 +138,23 @@ export class SeafoodOrdersService {
 
     if (updateOrderDto.status) {
       order.status = updateOrderDto.status;
+    }
+    
+    // Mettre à jour d'autres champs si nécessaire
+    if (updateOrderDto.pickupDate) {
+      order.pickupDate = new Date(updateOrderDto.pickupDate);
+    }
+    
+    if (updateOrderDto.pickupTime) {
+      order.pickupTime = updateOrderDto.pickupTime;
+    }
+    
+    if (updateOrderDto.isPickup !== undefined) {
+      order.isPickup = updateOrderDto.isPickup;
+    }
+    
+    if (updateOrderDto.specialRequests !== undefined) {
+      order.specialRequests = updateOrderDto.specialRequests;
     }
 
     await this.ordersRepository.save(order);

@@ -46,7 +46,7 @@ export default function RootLayout({
         <AuthProvider>
           <Toaster />
           <Navbar />
-          <main>
+          <main className="relative z-10">
             {children}
           </main>
           <Footer />

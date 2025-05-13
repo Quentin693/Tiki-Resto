@@ -1,63 +1,68 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import twilio from 'twilio';
 
-// Access environment variables for Twilio
+// Configuration Twilio côté serveur
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
 
-export async function POST(req: Request) {
-  try {
-    // Parse request body
-    const body = await req.json();
-    const { to, message } = body;
+// Interface pour la requête
+interface SmsRequest {
+  to: string;
+  message: string;
+}
 
-    // Validate input
-    if (!to || !message) {
+export async function POST(request: NextRequest) {
+  try {
+    // Vérifier la disponibilité des informations d'identification Twilio
+    if (!accountSid || !authToken || !twilioPhoneNumber) {
+      console.error('Configuration Twilio manquante');
       return NextResponse.json(
-        { error: 'Le numéro de téléphone et le message sont requis' },
+        { success: false, message: 'Configuration Twilio manquante' },
+        { status: 500 }
+      );
+    }
+
+    // Initialiser le client Twilio
+    const client = twilio(accountSid, authToken);
+
+    // Récupérer les données de la requête
+    const data: SmsRequest = await request.json();
+    
+    if (!data.to || !data.message) {
+      return NextResponse.json(
+        { success: false, message: 'Numéro de téléphone ou message manquant' },
         { status: 400 }
       );
     }
 
-    // Format phone number to ensure it has the country code
-    let formattedPhone = to;
-    if (!to.startsWith('+')) {
-      // Add French country code if not already present
-      formattedPhone = to.startsWith('0') ? `+33${to.substring(1)}` : `+33${to}`;
-    }
+    // Envoyer le SMS via Twilio
+    const message = await client.messages.create({
+      body: data.message,
+      from: twilioPhoneNumber,
+      to: data.to
+    });
 
-    // Only send SMS if in production environment
-    if (process.env.NODE_ENV === 'production' && accountSid && authToken && twilioPhoneNumber) {
-      // Import Twilio only when needed
-      const twilio = require('twilio');
-      const client = twilio(accountSid, authToken);
-
-      // Send SMS via Twilio
-      await client.messages.create({
-        body: message,
-        from: twilioPhoneNumber,
-        to: formattedPhone
-      });
-
-      return NextResponse.json({ success: true, message: 'SMS envoyé avec succès' });
-    } else {
-      // In development, just log the SMS details
-      console.log('DEVELOPMENT MODE - SMS would be sent:', {
-        to: formattedPhone,
-        from: twilioPhoneNumber || 'TWILIO_PHONE_NUMBER',
-        message
-      });
-      
-      return NextResponse.json({ 
-        success: true,
-        message: 'Mode développement - SMS simulé',
-        details: { to: formattedPhone, message }
-      });
-    }
-  } catch (error) {
-    console.error('Erreur lors de l\'envoi du SMS:', error);
+    console.log('SMS envoyé avec succès, SID:', message.sid);
+    
     return NextResponse.json(
-      { error: 'Une erreur est survenue lors de l\'envoi du SMS' },
+      { 
+        success: true, 
+        message: 'SMS envoyé avec succès',
+        sid: message.sid 
+      },
+      { status: 200 }
+    );
+    
+  } catch (error: any) {
+    console.error('Erreur lors de l\'envoi du SMS:', error);
+    
+    return NextResponse.json(
+      { 
+        success: false, 
+        message: `Erreur lors de l'envoi du SMS: ${error.message}`,
+        error: error.message 
+      },
       { status: 500 }
     );
   }

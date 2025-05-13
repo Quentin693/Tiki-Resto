@@ -39,7 +39,7 @@ export default function TimeSlots({ date, time, setFormData, isAdmin = false }: 
   const [availableSlots, setAvailableSlots] = useState<TimeSlotsResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [isClosedDay, setIsClosedDay] = useState<{lunch: boolean, dinner: boolean}>({ lunch: false, dinner: false });
+  const [isClosedDay, setIsClosedDay] = useState<{dinner: boolean}>({dinner: false });
   const [currentDateTime, setCurrentDateTime] = useState<Date>(new Date());
 
   // Mettre à jour l'heure actuelle
@@ -68,11 +68,10 @@ export default function TimeSlots({ date, time, setFormData, isAdmin = false }: 
     // - Mardi (2): fermé toute la journée
     // - Mercredi (3): fermé toute la journée
     // - Dimanche (0): fermé le soir
-    
-    const lunchClosed = dayOfWeek === 1;
-    const dinnerClosed = dayOfWeek === 0 || dayOfWeek === 1 || dayOfWeek === 2 || dayOfWeek === 3;
+    ;
+    const dinnerClosed = dayOfWeek === 0;
 
-    setIsClosedDay({ lunch: lunchClosed, dinner: dinnerClosed });
+    setIsClosedDay({ dinner: dinnerClosed });
 
   }, [date]);
 

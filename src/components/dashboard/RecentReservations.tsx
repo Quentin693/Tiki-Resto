@@ -9,69 +9,67 @@ interface RecentReservationsProps {
 // Interface étendue pour gérer les différents formats de données
 interface ReservationWithRawData extends Reservation {
   created_at?: string; // Propriété directement du backend
+  updated_at?: string; // Propriété pour la dernière modification
+  modifiedAt?: string; // Alternative pour la date de modification
   [key: string]: any; // Pour permettre tout accès dynamique supplémentaire
 }
 
 export default function RecentReservations({ reservations }: RecentReservationsProps) {
-  // Fonction pour récupérer la date de création pour le tri
-  const getCreationDate = (reservation: ReservationWithRawData): Date => {
-    // Vérifier toutes les possibilités de dates de création
+  // Fonction pour récupérer la date la plus récente (création ou modification)
+  const getMostRecentDate = (reservation: ReservationWithRawData): Date => {
+    const dates: Date[] = [];
+    
+    // Dates de création
     if (reservation.createdAt) {
-      return new Date(reservation.createdAt);
+      dates.push(new Date(reservation.createdAt));
     }
     if (reservation.created_at) {
-      return new Date(reservation.created_at);
+      dates.push(new Date(reservation.created_at));
     }
     
-    // Si aucune date de création, utiliser la date de réservation
-    if (reservation.date && reservation.time) {
-      return new Date(`${reservation.date}T${reservation.time}`);
+    // Dates de modification
+    if (reservation.updatedAt) {
+      dates.push(new Date(reservation.updatedAt));
     }
-    if (reservation.reservationDateTime) {
-      return new Date(reservation.reservationDateTime);
+    if (reservation.updated_at) {
+      dates.push(new Date(reservation.updated_at));
+    }
+    if (reservation.modifiedAt) {
+      dates.push(new Date(reservation.modifiedAt));
     }
     
-    // Fallback sur la date actuelle
-    console.warn("Aucune date trouvée pour la réservation:", reservation.id);
-    return new Date();
+    // Si aucune date de création ou modification, utiliser la date de réservation
+    if (dates.length === 0) {
+      if (reservation.date && reservation.time) {
+        dates.push(new Date(`${reservation.date}T${reservation.time}`));
+      } else if (reservation.reservationDateTime) {
+        dates.push(new Date(reservation.reservationDateTime));
+      } else {
+        // Fallback sur la date actuelle
+        console.warn("Aucune date trouvée pour la réservation:", reservation.id);
+        dates.push(new Date());
+      }
+    }
+    
+    // Retourner la date la plus récente
+    return new Date(Math.max(...dates.map(date => date.getTime())));
   };
   
-  // Récupérer les 10 dernières réservations créées
+  // Récupérer les 10 dernières réservations créées ou modifiées
   const getRecentReservations = () => {
     console.log("Réservations reçues:", reservations);
     
     // Accéder aux données potentiellement brutes
     const reservationsWithRawData = reservations as ReservationWithRawData[];
     
-    // Vérifier si nous avons des dates de création sous n'importe quelle forme
-    const hasCreationDates = reservationsWithRawData.some(res => !!res.createdAt || !!res.created_at);
-    
-    if (hasCreationDates) {
-      console.log("Tri des réservations par date de création");
-      // Tri par date de création
-      return [...reservationsWithRawData]
-        .sort((a, b) => {
-          const dateA = getCreationDate(a);
-          const dateB = getCreationDate(b);
-          return dateB.getTime() - dateA.getTime();
-        })
-        .slice(0, 10);
-    } else {
-      console.log("Tri des réservations par date de réservation");
-      // Tri par date de réservation
-      return [...reservationsWithRawData]
-        .sort((a, b) => {
-          // Utiliser soit date + time, soit reservationDateTime
-          const dateA = a.date && a.time 
-            ? new Date(`${a.date}T${a.time}`) 
-            : new Date(a.reservationDateTime);
-          const dateB = b.date && b.time 
-            ? new Date(`${b.date}T${b.time}`) 
-            : new Date(b.reservationDateTime);
-          return dateB.getTime() - dateA.getTime();
-        })
-        .slice(0, 10);
-    }
+    // Tri par date la plus récente (création ou modification)
+    return [...reservationsWithRawData]
+      .sort((a, b) => {
+        const dateA = getMostRecentDate(a);
+        const dateB = getMostRecentDate(b);
+        return dateB.getTime() - dateA.getTime();
+      })
+      .slice(0, 10);
   };
 
   // Formater la date de réservation
@@ -105,22 +103,11 @@ export default function RecentReservations({ reservations }: RecentReservationsP
 
   // Fonction pour calculer le temps écoulé
   const getElapsedTime = (reservation: ReservationWithRawData) => {
-    let creationDate = null;
+    // Récupérer la date la plus récente (création ou modification)
+    const mostRecentDate = getMostRecentDate(reservation);
     
-    // Essayer toutes les possibilités de dates de création
-    if (reservation.createdAt) {
-      creationDate = new Date(reservation.createdAt);
-    } else if (reservation.created_at) {
-      creationDate = new Date(reservation.created_at);
-    }
-    
-    // Si pas de date de création, retourner un message générique
-    if (!creationDate) {
-      return "Date inconnue";
-    }
-
     const now = new Date();
-    const minutesElapsed = Math.round((now.getTime() - creationDate.getTime()) / 60000);
+    const minutesElapsed = Math.round((now.getTime() - mostRecentDate.getTime()) / 60000);
     
     return minutesElapsed < 1 ? "À l'instant" : 
            minutesElapsed < 60 ? `Il y a ${minutesElapsed} min` :

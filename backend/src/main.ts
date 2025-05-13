@@ -57,7 +57,7 @@ async function bootstrap() {
   const host = configService.get('HOST') || 'localhost';
 
   await app.listen(port, host);
-  console.log(`Application is running on: http://${host}:${port}`);
-  console.log(`Swagger documentation: http://${host}:${port}/api`);
+   (`Application is running on: http://${host}:${port}`);
+   (`Swagger documentation: http://${host}:${port}/api`);
 }
 bootstrap();

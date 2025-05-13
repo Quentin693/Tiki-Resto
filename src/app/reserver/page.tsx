@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { toast } from 'react-hot-toast';
 import emailjs from '@emailjs/browser';
 import { useAuth } from '@/contexts/AuthContext';
+import Notifications from '@/components/Notifications';
 
 // Composants
 import GuestSelector from '@/components/reserver/GuestSelector';
@@ -144,7 +145,6 @@ export default function ReservationPage() {
   };
 
   const handleDateSelect = (date: Date) => {
-    console.log("Date sélectionnée dans handleDateSelect:", date);
     
     // Créer une copie de la date à midi pour éviter les problèmes de fuseau horaire
     const dateOnly = new Date(date);
@@ -152,7 +152,6 @@ export default function ReservationPage() {
     
     // Formatage cohérent de la date pour le formulaire (YYYY-MM-DD)
     const formattedDate = dateOnly.toISOString().split('T')[0];
-    console.log("Date formatée pour le formulaire:", formattedDate);
     
     // Réinitialiser l'heure sélectionnée quand on change de date
     setFormData({
@@ -210,8 +209,6 @@ export default function ReservationPage() {
           : `[Réservation groupe: ${numGuests} personnes]`;
       }
 
-      console.log('Envoi de la réservation:', reservationData);
-
       const response = await fetch('http://localhost:3001/reservations', {
         method: 'POST',
         headers: {
@@ -227,7 +224,6 @@ export default function ReservationPage() {
       }
 
       const data = await response.json();
-      console.log('Réservation créée:', data);
       setShowConfirmation(true);
     } catch (err) {
       setError('Une erreur est survenue lors de la réservation. Veuillez réessayer.');
@@ -355,15 +351,35 @@ export default function ReservationPage() {
         return;
       }
       
-      // Utiliser EmailJS pour envoyer le formulaire avec une référence au formulaire
-      await emailjs.sendForm(
-        "service_w43hhbe", // Service ID
-        "template_evenements", // Template ID
-        eventFormRef.current as HTMLFormElement,
-        "qGukIkoXy-BXaqm2L" // Public Key
-      );
-      
-      toast.success('Votre demande a été envoyée avec succès !');
+      // Formatage de la date pour le client
+      let formattedEventDate = 'Date non spécifiée';
+      if (eventFormData.eventDate) {
+        const eventDate = new Date(eventFormData.eventDate);
+        formattedEventDate = eventDate.toLocaleDateString('fr-FR', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        });
+      }
+  
+      // Utiliser Notifications.notify avec toutes les informations
+      await Notifications.notify({
+        type: 'event',
+        data: {
+          customerName: eventFormData.customerName,
+          customerEmail: eventFormData.customerEmail,
+          customerPhone: eventFormData.customerPhone,
+          eventType: eventFormData.eventType,
+          eventDate: eventFormData.eventDate,
+          formattedEventDate: formattedEventDate,
+          guestCount: eventFormData.guestCount,
+          numberOfGuests: eventFormData.guestCount,
+          specialRequests: eventFormData.specialRequests || 'Aucune',
+          subject: `Nouvelle demande d'événement - ${eventFormData.eventType}`
+        },
+        sendSMS: false,
+        sendEmail: true
+      });
       
       // Réinitialiser le formulaire
       setEventFormData({
@@ -375,6 +391,7 @@ export default function ReservationPage() {
         guestCount: '2',
         specialRequests: ''
       });
+      toast.success('Votre demande a été envoyée avec succès !');
       // Utiliser une nouvelle date au lieu de null
       setSelectedEventDate(new Date());
     } catch (error) {

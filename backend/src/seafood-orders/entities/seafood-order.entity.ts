@@ -26,6 +26,10 @@ export class SeafoodOrder {
   @Column({ nullable: true, type: 'varchar' })
   customerEmail: string | null;
 
+  // Lien avec l'utilisateur (si connecté)
+  @Column({ type: 'integer', nullable: true })
+  userId?: number;
+
   // Infos de récupération
   @Column({ type: 'date' })
   pickupDate: Date;

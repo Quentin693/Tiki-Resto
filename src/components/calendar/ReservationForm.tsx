@@ -33,6 +33,14 @@ export default function ReservationForm({
   selectedDate,
   isEditing
 }: ReservationFormProps) {
+  
+  // Log pour déboguer
+  console.log('ReservationForm rendu avec:', {
+    formData,
+    selectedDate: selectedDate?.toISOString(),
+    isEditing
+  });
+  
   return (
     <div className="bg-[#3a3a3a] rounded-lg p-4 mb-6">
       <h4 className="text-lg font-semibold mb-4">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -12,7 +12,7 @@ interface User {
   id: number;
   name: string;
   email: string;
-  phone?: string;
+  phoneNumber?: string;
   role: string;
 }
 
@@ -31,10 +31,12 @@ interface Reservation {
 
 // Interface pour le formulaire de modification de réservation
 interface EditFormData {
+  id?: number;
   date: string;
   time: string;
   guests: number;
   specialRequests?: string;
+  sendSms?: boolean;
 }
 
 // Interfaces pour les commandes de fruits de mer
@@ -72,10 +74,12 @@ interface SeafoodOrder {
 
 // Interface pour le formulaire de modification de commande
 interface EditSeafoodOrderFormData {
+  id?: string;
   pickupDate: string;
   pickupTime: string;
   specialRequests?: string;
   isPickup: boolean;
+  sendSms?: boolean;
 }
 
 export default function MesReservationsPage() {
@@ -87,6 +91,7 @@ export default function MesReservationsPage() {
   
   // État pour les commandes de fruits de mer
   const [seafoodOrders, setSeafoodOrders] = useState<SeafoodOrder[]>([]);
+  const [orders, setOrders] = useState<SeafoodOrder[]>([]);
   const [loadOrdersAttempted, setLoadOrdersAttempted] = useState(false);
   const [activeTab, setActiveTab] = useState<'reservations' | 'orders'>('reservations');
   
@@ -97,17 +102,19 @@ export default function MesReservationsPage() {
     date: '',
     time: '',
     guests: 2,
-    specialRequests: ''
+    specialRequests: '',
+    sendSms: true
   });
   
   // États pour la modification des commandes de fruits de mer
   const [editingOrder, setEditingOrder] = useState<SeafoodOrder | null>(null);
   const [showEditOrderModal, setShowEditOrderModal] = useState(false);
-  const [editOrderFormData, setEditOrderFormData] = useState<EditSeafoodOrderFormData>({
+  const [editOrderData, setEditOrderData] = useState<EditSeafoodOrderFormData>({
     pickupDate: '',
     pickupTime: '',
     specialRequests: '',
-    isPickup: true
+    isPickup: true,
+    sendSms: true
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -117,6 +124,28 @@ export default function MesReservationsPage() {
   const [confirmingDelete, setConfirmingDelete] = useState<number | null>(null);
   const [confirmingOrderDelete, setConfirmingOrderDelete] = useState<string | null>(null);
   const [sendNotification, setSendNotification] = useState(true);
+
+  // État pour les messages de succès et d'erreur
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const successMessage = useRef('');
+  const [errorToast, setErrorToast] = useState({ visible: false, message: '' });
+  
+  // Valeurs initiales pour réinitialiser les formulaires
+  const initialEditFormData: EditFormData = {
+    date: '',
+    time: '',
+    guests: 2,
+    specialRequests: '',
+    sendSms: true
+  };
+  
+  const initialEditOrderData: EditSeafoodOrderFormData = {
+    pickupDate: '',
+    pickupTime: '',
+    specialRequests: '',
+    isPickup: true,
+    sendSms: true
+  };
 
   useEffect(() => {
     // Rediriger vers la page de connexion si l'utilisateur n'est pas connecté
@@ -192,7 +221,7 @@ export default function MesReservationsPage() {
     }
   };
 
-  // Utiliser useCallback pour envelopper fetchUserReservations
+  // Modifier fetchUserReservations pour traiter les réservations comme les commandes de fruits de mer
   const fetchUserReservations = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -239,8 +268,6 @@ export default function MesReservationsPage() {
               if (refreshSuccess) {
                 // Récupérer le nouveau token
                 const newToken = localStorage.getItem('token');
-                console.log('Page: Nouvelle tentative avec token rafraîchi:', newToken ? 'Token disponible' : 'Pas de nouveau token');
-                
                 // Réessayer avec le nouveau token
                 response = await fetch('/api/reservations/user', {
                   method: 'GET',
@@ -249,8 +276,6 @@ export default function MesReservationsPage() {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                   }
                 });
-                
-                console.log('Page: Réponse après rafraîchissement:', response.status);
                 
                 if (response.ok) {
                   success = true;
@@ -275,17 +300,22 @@ export default function MesReservationsPage() {
       if (!success) {
         console.log('Tentative de récupération des réservations par email/téléphone');
         const searchParams = new URLSearchParams();
+        
         if (user?.email) searchParams.append('email', user.email);
-        if (user?.phoneNumber) searchParams.append('phone', user.phoneNumber);
+        
+        // Simplifier pour n'utiliser que phoneNumber
+        const phoneNumber = user?.phoneNumber;
+        if (phoneNumber) searchParams.append('phone', phoneNumber);
         
         // Si nous n'avons ni email ni téléphone, afficher un message d'erreur
-        if (!user?.email && !user?.phoneNumber) {
+        if (!user?.email && !phoneNumber) {
           toast.error('Veuillez vous connecter ou fournir un email/téléphone pour voir vos réservations');
           setIsLoading(false);
           return;
         }
         
         try {
+          console.log(`Recherche avec paramètres: ${searchParams.toString()}`);
           response = await fetch(`/api/reservations/search?${searchParams.toString()}`, {
             method: 'GET',
             headers: {
@@ -313,7 +343,37 @@ export default function MesReservationsPage() {
       }
 
       const data = await response.json();
-      setReservations(data);
+      
+      console.log("Données brutes du serveur:", JSON.stringify(data));
+      
+      // Traiter les réservations exactement comme les commandes de fruits de mer
+      const processedReservations = data.map((reservation: any) => {
+        console.log(`Réservation #${reservation.id} - données brutes:`, JSON.stringify(reservation));
+        
+        // Extraire date et heure sans aucune conversion
+        let datePart = reservation.date;
+        let timePart = reservation.time;
+        
+        // Si on a reservationDateTime mais pas date/time séparés
+        if (reservation.reservationDateTime && (!datePart || !timePart)) {
+          if (reservation.reservationDateTime.includes('T')) {
+            const parts = reservation.reservationDateTime.split('T');
+            datePart = parts[0];
+            
+            // Extraire l'heure sans aucune conversion
+            timePart = parts[1].split(':')[0] + ':' + parts[1].split(':')[1];
+          }
+        }
+        
+        return {
+          ...reservation,
+          date: datePart,
+          time: timePart
+        };
+      });
+      
+      console.log("Réservations traitées sans conversion:", processedReservations);
+      setReservations(processedReservations);
     } catch (error: any) {
       console.error('Erreur globale:', error);
       toast.error(`Impossible de charger vos réservations: ${error.message || 'Erreur inconnue'}`);
@@ -329,137 +389,160 @@ export default function MesReservationsPage() {
       let success = false;
       let errorDetails = '';
       
-      // Si l'utilisateur est connecté, on essaie d'abord son token
-      if (isAuthenticated && user) {
-        try {
-          const storedToken = localStorage.getItem('token');
-          
-          if (token !== storedToken) {
-            console.warn('Page Seafood: Attention - Le token du contexte ne correspond pas au token stocké');
-          }
-          
-          const tokenToUse = token || storedToken;
-          if (!tokenToUse) {
-            console.error('Page Seafood: Aucun token disponible. Impossible de faire la requête authentifiée.');
-            throw new Error('Token manquant');
-          }
-          
-          response = await fetch('/api/seafood-orders/user', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${tokenToUse}`
-            }
-          });
-          
-          if (response.ok) {
-            success = true;
-          } else {
-            const errorData = await response.json();
-            errorDetails = errorData.message || 'Erreur d\'authentification';
-            console.error('Page Seafood: Erreur avec le token:', response.status, errorData);
-            
-            // Si le token est invalide, essayer de rafraîchir la session
-            if (errorData.message && errorData.message.includes('Token')) {
-              console.log('Page Seafood: Tentative de rafraîchir la session...');
-              const refreshSuccess = await refreshLogin();
-              
-              if (refreshSuccess) {
-                const newToken = localStorage.getItem('token');
-                console.log('Page Seafood: Nouvelle tentative avec token rafraîchi:', newToken ? 'Token disponible' : 'Pas de nouveau token');
-                
-                // Réessayer avec le nouveau token
-                response = await fetch('/api/seafood-orders/user', {
-                  method: 'GET',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                  }
-                });
-                
-                if (response.ok) {
-                  success = true;
-                  console.log('Page Seafood: Commandes récupérées avec succès après rafraîchissement');
-                } else {
-                  const newErrorData = await response.json();
-                  errorDetails = newErrorData.message || 'Échec après rafraîchissement';
-                  console.error('Page Seafood: Échec après rafraîchissement:', response.status, newErrorData);
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Page Seafood: Erreur lors de la requête authentifiée:', error);
-          errorDetails = 'Erreur de communication avec le serveur';
-        }
+      // Au lieu d'essayer le token, allons directement à la recherche par email/téléphone
+      console.log('Tentative de récupération des commandes par email/téléphone');
+      const searchParams = new URLSearchParams();
+      
+      // Utiliser les coordonnées du profil utilisateur
+      if (user?.email) searchParams.append('email', user.email);
+      
+      // Utiliser phoneNumber pour l'API
+      const phoneNumber = user?.phoneNumber;
+      if (phoneNumber) searchParams.append('phone', phoneNumber);
+      
+      // Si nous n'avons ni email ni téléphone, afficher un message d'erreur
+      if (!user?.email && !phoneNumber) {
+        console.log('Aucun email ou téléphone disponible pour chercher les commandes');
+        setSeafoodOrders([]);
+        return;
       }
       
-      // Si l'authentification a échoué ou n'a pas été tentée, on essaie par email/téléphone
-      if (!success) {
-        console.log('Tentative de récupération des commandes par email/téléphone');
-        const searchParams = new URLSearchParams();
-        if (user?.email) searchParams.append('email', user.email);
-        if (user?.phoneNumber) searchParams.append('phone', user.phoneNumber);
+      try {
+        console.log(`Recherche avec paramètres: ${searchParams.toString()}`);
+        response = await fetch(`/api/seafood-orders/search?${searchParams.toString()}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
         
-        // Si nous n'avons ni email ni téléphone, afficher un message d'erreur
-        if (!user?.email && !user?.phoneNumber) {
-          console.log('Aucun email ou téléphone disponible pour chercher les commandes');
-          return;
-        }
+        console.log('Statut de la réponse API seafood-orders/search:', response.status);
         
-        try {
-          response = await fetch(`/api/seafood-orders/search?${searchParams.toString()}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          });
+        if (response.ok) {
+          success = true;
+          console.log('Commandes récupérées avec succès via email/téléphone');
+        } else {
+          // Récupérer le contenu brut pour le débogage
+          const rawErrorText = await response.text();
+          console.error('Erreur brute de l\'API de recherche:', rawErrorText);
           
-          if (response.ok) {
-            success = true;
-            console.log('Commandes récupérées avec succès via email/téléphone');
-          } else {
-            const searchErrorData = await response.json();
+          try {
+            const searchErrorData = JSON.parse(rawErrorText);
             errorDetails = searchErrorData.message || 'Erreur de recherche';
             console.error('Erreur de recherche par email/téléphone:', searchErrorData);
+          } catch (parseError) {
+            console.error('Impossible de parser l\'erreur comme JSON:', parseError);
+            errorDetails = `Erreur ${response.status}: ${rawErrorText.substring(0, 100)}...`;
           }
-        } catch (searchError) {
-          console.error('Erreur lors de la recherche par email/téléphone:', searchError);
-          errorDetails = 'Erreur de communication lors de la recherche';
         }
+      } catch (searchError) {
+        console.error('Erreur lors de la recherche par email/téléphone:', searchError);
+        errorDetails = 'Erreur de communication lors de la recherche';
       }
 
       // Vérifier que response n'est pas null avant d'appeler .json()
       if (!response || !success) {
-        // Si les commandes ne sont pas trouvées, c'est peut-être normal (l'utilisateur n'a pas de commandes)
-        // Donc on ne lance pas d'erreur mais on initialise avec un tableau vide
         setSeafoodOrders([]);
         return;
       }
 
-      const data = await response.json();
-      setSeafoodOrders(data);
+      try {
+        const data = await response.json();
+        
+        // Pour le traitement des commandes
+        const processedOrders = data.map((order: any) => {
+          
+          // Vérifier la structure exacte de l'objet pour accéder correctement aux prix
+          let fixedTotalPrice = 0;
+          
+          // Traiter les plateaux
+          const processedPlateaux = Array.isArray(order.plateaux) 
+            ? order.plateaux.map((plateau: any) => {
+                // Examiner la structure du plateau
+                
+                // Extraire le prix correct du plateau
+                let plateauPrice = 0;
+                if (plateau.price !== undefined) {
+                  plateauPrice = convertToNumber(plateau.price);
+                } else if (plateau.unitPrice !== undefined) {
+                  plateauPrice = convertToNumber(plateau.unitPrice);
+                }
+                
+                // Extraire la quantité
+                const quantity = convertToNumber(plateau.quantity);
+                
+                // Ajouter au total
+                fixedTotalPrice += plateauPrice * quantity;
+                
+                return {
+                  ...plateau,
+                  price: plateauPrice,
+                  quantity: quantity
+                };
+              }) 
+            : [];
+          
+          // Traiter les items
+          const processedItems = Array.isArray(order.items) 
+            ? order.items.map((item: any) => {
+                
+                // Extraire le prix correct de l'item
+                let itemPrice = 0;
+                if (item.price !== undefined) {
+                  itemPrice = convertToNumber(item.price);
+                } else if (item.unitPrice !== undefined) {
+                  itemPrice = convertToNumber(item.unitPrice);
+                }
+                
+                // Extraire la quantité
+                const quantity = convertToNumber(item.quantity);
+                
+                // Ajouter au total
+                fixedTotalPrice += itemPrice * quantity;
+                
+                return {
+                  ...item,
+                  price: itemPrice,
+                  quantity: quantity
+                };
+              }) 
+            : [];
+          
+          // Si le totalPrice n'est pas correct dans l'objet, utiliser notre calcul
+          const finalPrice = (typeof order.totalPrice === 'number' && order.totalPrice > 0) 
+            ? order.totalPrice 
+            : fixedTotalPrice;
+            
+          return {
+            ...order,
+            totalPrice: finalPrice,
+            plateaux: processedPlateaux,
+            items: processedItems
+          };
+        });
+        setSeafoodOrders(processedOrders);
+      } catch (error) {
+        console.error('Erreur lors du parsing des données JSON:', error);
+        // En cas d'erreur de parsing, initialiser avec un tableau vide
+        setSeafoodOrders([]);
+      }
     } catch (error: any) {
       console.error('Erreur globale lors de la récupération des commandes:', error);
       // On initialise avec un tableau vide plutôt que d'afficher une erreur
       setSeafoodOrders([]);
     }
-  }, [refreshLogin, user, isAuthenticated, token]);
+  }, [user]);
 
-  // Ouvrir le modal de modification avec les données de la réservation
-  const handleEdit = (reservation: Reservation) => {
-    setEditingReservation(reservation);
-    setEditFormData({
-      date: reservation.date,
-      time: reservation.time,
-      guests: reservation.guests,
-      specialRequests: reservation.specialRequests || ''
-    });
-    
-    // Charger les créneaux disponibles pour la date sélectionnée
-    fetchAvailableTimeSlots(reservation.date);
-    
-    setShowEditModal(true);
+  // Fonction utilitaire pour convertir en nombre
+  const convertToNumber = (value: any): number => {
+    if (typeof value === 'number' && !isNaN(value)) {
+      return value;
+    }
+    if (typeof value === 'string') {
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
   };
 
   // Gérer les changements dans le formulaire
@@ -477,58 +560,85 @@ export default function MesReservationsPage() {
     }));
   };
 
-  // Soumettre les modifications
+  // Modifier handleEditSubmit pour utiliser la même approche que pour les commandes de fruits de mer
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!editingReservation) return;
-    
     setIsSubmitting(true);
-    
+
     try {
-      // Préparer les données pour l'API
-      const reservationData = {
-        date: editFormData.date,
-        time: editFormData.time,
-        guests: editFormData.guests,
-        specialRequests: editFormData.specialRequests,
-        sendSms: sendNotification // Ajouter l'option pour envoyer un SMS
-      };
+      const token = await getToken();
       
-      const response = await fetch(`/api/reservations/${editingReservation.id}`, {
+      // Formatage identique à celui des commandes de fruits de mer
+      const reservationData = {
+        customerName: editingReservation?.customerName || "",
+        customerEmail: editingReservation?.customerEmail || "",
+        customerPhone: editingReservation?.customerPhone || "",
+        numberOfGuests: editFormData.guests,
+        reservationDateTime: `${editFormData.date}T${editFormData.time}:00.000Z`,
+        specialRequests: editFormData.specialRequests || "",
+        userId: editingReservation?.userId || 1,
+        isEvent: false
+      };
+
+      console.log("Données envoyées à l'API:", JSON.stringify(reservationData));
+      
+      const response = await fetch(`/api/reservations/${editFormData.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': token ? `Bearer ${token}` : ''
         },
         body: JSON.stringify(reservationData)
       });
-      
+
+      // Réutiliser le code des commandes de fruits de mer pour la gestion de la réponse
+      const statusCode = response.status;
+      const statusText = await response.text();
+      console.log(`Réponse API: ${statusCode} - ${statusText}`);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erreur lors de la modification');
+        let message = "Erreur lors de la modification de la réservation";
+        try {
+          const errorData = JSON.parse(statusText);
+          message = errorData.message || message;
+        } catch (e) {
+          console.error("Erreur lors du parsing de la réponse:", e);
+        }
+        throw new Error(message);
       }
-      
-      const updatedReservation = await response.json();
-      
-      // Mettre à jour la liste des réservations
-      setReservations(prev => 
-        prev.map(res => res.id === editingReservation.id ? updatedReservation : res)
+
+      // Mise à jour identique à celle des commandes de fruits de mer
+      setReservations(prevReservations => 
+        prevReservations.map(res => {
+          if (res.id === editFormData.id) {
+            // Mettre à jour la réservation avec exactement les valeurs du formulaire
+            return {
+              ...res,
+              date: editFormData.date,
+              time: editFormData.time,
+              guests: editFormData.guests,
+              specialRequests: editFormData.specialRequests || res.specialRequests
+            };
+          }
+          return res;
+        })
       );
       
-      toast.success('Réservation modifiée avec succès');
+      // Important: NE PAS recharger les réservations
+      // fetchUserReservations();
+      
       setShowEditModal(false);
-    } catch (error: any) {
-      console.error('Erreur:', error);
-      toast.error(`Impossible de modifier la réservation: ${error.message || 'Erreur inconnue'}`);
+      toast.success("Réservation modifiée avec succès");
+      
+    } catch (error) {
+      console.error("Erreur lors de la modification:", error);
+      toast.error(error instanceof Error ? error.message : "Erreur lors de la modification de la réservation");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleCancel = async (reservationId: number) => {
-    console.log("Bouton d'annulation cliqué pour la réservation:", reservationId);
-    
     // Ouvrir la confirmation au lieu de supprimer directement
     setConfirmingDelete(reservationId);
   };
@@ -540,7 +650,6 @@ export default function MesReservationsPage() {
     const reservationId = confirmingDelete;
     
     try {
-      console.log("Suppression confirmée pour réservation:", reservationId);
       
       // Récupérer le token depuis localStorage
       const tokenToUse = localStorage.getItem('token');
@@ -561,8 +670,6 @@ export default function MesReservationsPage() {
         // Inclure sendSms dans le corps de la requête DELETE
         body: JSON.stringify({ sendSms: sendNotification })
       });
-      
-      console.log("Réponse reçue, statut:", response.status);
       
       // Simplifier la gestion des erreurs
       if (!response.ok) {
@@ -612,14 +719,56 @@ export default function MesReservationsPage() {
     setConfirmingDelete(null);
   };
 
+  // Mise à jour de la fonction formatDate qui évite les conversions de fuseau horaire
   const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    };
-    return new Date(dateString).toLocaleDateString('fr-FR', options);
+    try {
+      // Si le format n'est pas YYYY-MM-DD, retourner tel quel
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        return dateString;
+      }
+      
+      // Tableaux de noms en français
+      const weekdays = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+      const months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+      
+      // Extraire année, mois, jour
+      const [year, month, day] = dateString.split('-').map(Number);
+      
+      // Créer un objet Date en UTC pour éviter les conversions de fuseau horaire
+      // On utilise l'objet Date uniquement pour obtenir le jour de la semaine
+      const date = new Date(Date.UTC(year, month - 1, day));
+      const weekday = weekdays[date.getUTCDay()];
+      
+      // Retourner la date formatée manuellement
+      return `${weekday} ${day} ${months[month - 1]} ${year}`;
+    } catch (e) {
+      console.error("Erreur lors du formatage de la date:", e);
+      return dateString; // Retourner la date originale en cas d'erreur
+    }
+  };
+
+  // Mise à jour de la fonction formatTime pour éviter toute conversion
+  const formatTime = (timeString: string) => {
+    try {
+      // Si c'est déjà au format HH:MM, on le retourne directement
+      if (/^\d{2}:\d{2}$/.test(timeString)) {
+        return timeString;
+      }
+      
+      // Si c'est une date ISO complète (comme 2023-05-15T19:30:00Z)
+      if (timeString.includes('T')) {
+        // Extraire directement les heures et minutes sans créer d'objet Date
+        const timePart = timeString.split('T')[1];
+        // Prendre seulement HH:MM
+        return timePart.substring(0, 5);
+      }
+      
+      // Format par défaut
+      return timeString;
+    } catch (e) {
+      console.error("Erreur lors du formatage de l'heure:", e);
+      return timeString; // Retourner l'heure originale en cas d'erreur
+    }
   };
 
   // Fonction pour filtrer les réservations passées
@@ -690,11 +839,13 @@ export default function MesReservationsPage() {
   // Ouvrir le modal de modification d'une commande de fruits de mer
   const handleEditOrder = (order: SeafoodOrder) => {
     setEditingOrder(order);
-    setEditOrderFormData({
+    setEditOrderData({
+      id: order.id,
       pickupDate: order.pickupDate,
       pickupTime: order.pickupTime,
       specialRequests: order.specialRequests || '',
-      isPickup: order.isPickup
+      isPickup: order.isPickup,
+      sendSms: true
     });
     
     setShowEditOrderModal(true);
@@ -705,12 +856,12 @@ export default function MesReservationsPage() {
     const { name, value } = e.target;
     
     if (name === 'isPickup') {
-      setEditOrderFormData(prev => ({
+      setEditOrderData(prev => ({
         ...prev,
         [name]: value === 'true'
       }));
     } else {
-      setEditOrderFormData(prev => ({
+      setEditOrderData(prev => ({
         ...prev,
         [name]: value
       }));
@@ -720,47 +871,130 @@ export default function MesReservationsPage() {
   // Soumettre les modifications de commande
   const handleEditOrderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!editingOrder) return;
-    
     setIsSubmitting(true);
-    
+
     try {
-      // Préparer les données pour l'API
-      const orderData = {
-        pickupDate: editOrderFormData.pickupDate,
-        pickupTime: editOrderFormData.pickupTime,
-        specialRequests: editOrderFormData.specialRequests,
-        isPickup: editOrderFormData.isPickup,
-        sendSms: sendNotification
-      };
+      const token = await getToken();
       
-      const response = await fetch(`/api/seafood-orders/${editingOrder.id}`, {
+      // Créer la structure exacte comme dans la documentation Swagger
+      const orderData = {
+        status: "pending",
+        comment: "Modification par le client",
+        pickupDate: editOrderData.pickupDate,
+        pickupTime: editOrderData.pickupTime,
+        isPickup: editOrderData.isPickup,
+        specialRequests: editOrderData.specialRequests || "",
+      };
+
+      console.log("Données de modification de commande:", orderData);
+
+      const response = await fetch(`/api/seafood-orders/${editOrderData.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': token ? `Bearer ${token}` : ''
         },
         body: JSON.stringify(orderData)
       });
+
+      console.log("Statut de la réponse de modification (token):", response.status);
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erreur lors de la modification');
+      let responseData;
+      let statusText = '';
+      
+      try {
+        statusText = await response.text();
+        if (statusText) {
+          responseData = JSON.parse(statusText);
+        }
+      } catch (e) {
+        console.error("Erreur lors du parsing de la réponse:", e);
       }
       
-      const updatedOrder = await response.json();
+      if (!response.ok) {
+        let message = "Erreur lors de la modification de la commande";
+        if (responseData && responseData.message) {
+          message = responseData.message;
+        }
+        throw new Error(message);
+      }
       
-      // Mettre à jour la liste des commandes
-      setSeafoodOrders(prev => 
-        prev.map(order => order.id === editingOrder.id ? updatedOrder : order)
-      );
+      // Tentative alternative si besoin
+      if (response.status === 401 || response.status === 403) {
+        console.log("Tentative alternative avec email/téléphone");
+        
+        // Informations de contact déjà incluses dans orderData
+        const alternativeResponse = await fetch(`/api/seafood-orders/update-by-contact/${editOrderData.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(orderData)
+        });
+        
+        console.log("Statut de la réponse de la méthode alternative:", alternativeResponse.status);
+        
+        if (!alternativeResponse.ok) {
+          const alternativeText = await alternativeResponse.text();
+          let message = "Erreur lors de la modification de la commande";
+          try {
+            const errorData = JSON.parse(alternativeText);
+            message = errorData.message || message;
+          } catch (e) {
+            console.error("Erreur lors du parsing de la réponse alternative:", e);
+          }
+          throw new Error(message);
+        }
+        
+        try {
+          const altText = await alternativeResponse.text();
+          if (altText) {
+            responseData = JSON.parse(altText);
+          }
+        } catch (e) {
+          console.error("Erreur lors du parsing de la réponse alternative réussie:", e);
+        }
+      }
+
+      // Extraire les données mises à jour
+      const updatedPickupDate = responseData?.pickupDate || editOrderData.pickupDate;
+      const updatedPickupTime = responseData?.pickupTime || editOrderData.pickupTime;
+      const updatedIsPickup = responseData?.isPickup !== undefined ? responseData.isPickup : editOrderData.isPickup;
+      const updatedSpecialRequests = responseData?.specialRequests || editOrderData.specialRequests;
+
+      // Mettre à jour les deux états locaux (seafoodOrders et orders)
+      const updateOrderState = (prevOrders: SeafoodOrder[]) => 
+        prevOrders.map((order: SeafoodOrder) => {
+          if (order.id === editOrderData.id) {
+            return {
+              ...order,
+              pickupDate: updatedPickupDate,
+              pickupTime: updatedPickupTime,
+              specialRequests: updatedSpecialRequests,
+              isPickup: updatedIsPickup
+            };
+          }
+          return order;
+        });
       
-      toast.success('Commande modifiée avec succès');
+      // Mettre à jour les deux états
+      setSeafoodOrders(updateOrderState);
+      if (setOrders) {
+        setOrders(updateOrderState);
+      }
+      
       setShowEditOrderModal(false);
-    } catch (error: any) {
-      console.error('Erreur:', error);
-      toast.error(`Impossible de modifier la commande: ${error.message || 'Erreur inconnue'}`);
+      setShowSuccessToast(true);
+      successMessage.current = "Commande modifiée avec succès";
+      
+      // Réinitialiser le formulaire
+      setEditOrderData(initialEditOrderData);
+    } catch (error) {
+      console.error("Erreur complète:", error);
+      setErrorToast({
+        visible: true,
+        message: error instanceof Error ? error.message : "Erreur lors de la modification de la commande"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -768,7 +1002,6 @@ export default function MesReservationsPage() {
 
   // Demander la confirmation pour annuler une commande
   const handleCancelOrder = (orderId: string) => {
-    console.log("Bouton d'annulation cliqué pour la commande:", orderId);
     setConfirmingOrderDelete(orderId);
   };
   
@@ -779,7 +1012,6 @@ export default function MesReservationsPage() {
     const orderId = confirmingOrderDelete;
     
     try {
-      console.log("Suppression confirmée pour commande:", orderId);
       
       const tokenToUse = localStorage.getItem('token');
       
@@ -797,8 +1029,6 @@ export default function MesReservationsPage() {
         },
         body: JSON.stringify({ sendSms: sendNotification })
       });
-      
-      console.log("Réponse reçue, statut:", response.status);
       
       if (!response.ok) {
         let errorMsg = `Erreur ${response.status} lors de l'annulation`;
@@ -841,6 +1071,44 @@ export default function MesReservationsPage() {
   // Fonction pour annuler la suppression d'une commande
   const cancelOrderDelete = () => {
     setConfirmingOrderDelete(null);
+  };
+
+  // Mise à jour de la fonction handleEdit pour éviter les conversions
+  const handleEdit = (reservation: Reservation) => {
+    console.log(">>> DÉBUT ÉDITION - Réservation originale:", reservation);
+    
+    // Conserver la réservation complète pour référence
+    setEditingReservation(reservation);
+    
+    // IMPORTANT: Utiliser exactement les valeurs stockées sans conversion
+    setEditFormData({
+      id: reservation.id,
+      date: reservation.date,
+      time: reservation.time,
+      guests: reservation.guests,
+      specialRequests: reservation.specialRequests || '',
+      sendSms: true
+    });
+    
+    console.log(">>> Formulaire initialisé avec date exacte:", reservation.date, "et heure exacte:", reservation.time);
+    
+    // Charger les créneaux disponibles pour la date sélectionnée
+    fetchAvailableTimeSlots(reservation.date);
+    
+    setShowEditModal(true);
+  };
+
+  // Fonction pour obtenir le token d'authentification
+  const getToken = async (): Promise<string | null> => {
+    if (token) return token;
+    
+    // Si pas de token, essayer depuis localStorage
+    const localToken = localStorage.getItem('token');
+    if (localToken) return localToken;
+    
+    // Si toujours pas de token, essayer de rafraîchir
+    const success = await refreshLogin();
+    return success ? localStorage.getItem('token') : null;
   };
 
   if (isLoading) {
@@ -958,7 +1226,7 @@ export default function MesReservationsPage() {
                             <div className="flex items-center mb-2">
                               <span className="text-[#C4B5A2] text-xl font-semibold">{formatDate(reservation.date)}</span>
                               <span className="ml-2 px-2 py-1 bg-[#C4B5A2]/20 rounded text-sm text-[#C4B5A2]">
-                                {reservation.time}
+                                {reservation.time} {/* Afficher l'heure exacte sans aucun formatage */}
                               </span>
                             </div>
                             <p className="text-gray-300">
@@ -972,7 +1240,10 @@ export default function MesReservationsPage() {
                           </div>
                           <div className="flex items-center space-x-4">
                             <button
-                              onClick={() => handleEdit(reservation)}
+                              onClick={() => {
+                                console.log("Modification de la réservation:", reservation);
+                                handleEdit(reservation);
+                              }}
                               className="px-4 py-2 border border-blue-500/70 text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
                             >
                               Modifier
@@ -1036,14 +1307,24 @@ export default function MesReservationsPage() {
                               <div className="flex items-center mb-2">
                                 <span className="text-[#C4B5A2] text-xl font-semibold">{formatDate(order.pickupDate)}</span>
                                 <span className="ml-2 px-2 py-1 bg-[#C4B5A2]/20 rounded text-sm text-[#C4B5A2]">
-                                  {order.pickupTime}
+                                  {formatTime(order.pickupTime)}
                                 </span>
                                 <span className="ml-2 px-2 py-1 bg-green-500/20 rounded text-sm text-green-400">
                                   {order.isPickup ? 'À emporter' : 'Livraison'}
                                 </span>
                               </div>
                               <p className="text-gray-300">
-                                <span className="font-medium">Total:</span> {order.totalPrice.toFixed(2)} €
+                                <span className="font-medium">Total:</span> {
+                                  (() => {
+                                    // Vérifier si le prix est un nombre valide
+                                    const price = typeof order.totalPrice === 'number' && !isNaN(order.totalPrice) 
+                                      ? order.totalPrice
+                                      : 0;
+                                    
+                                    // Formater avec 2 décimales
+                                    return `${price.toFixed(2)} €`;
+                                  })()
+                                }
                               </p>
                             </div>
                             <div className="flex items-center space-x-4">
@@ -1074,7 +1355,7 @@ export default function MesReservationsPage() {
                                         {plateau.quantity} × {plateau.name}
                                       </span>
                                       <span className="text-gray-400">
-                                        {(plateau.quantity * plateau.price).toFixed(2)} €
+                                        {(convertToNumber(plateau.quantity) * convertToNumber(plateau.price)).toFixed(2)} €
                                       </span>
                                     </div>
                                   ))}
@@ -1092,7 +1373,7 @@ export default function MesReservationsPage() {
                                         {item.quantity} × {item.name} {item.half ? '(demi-douzaine)' : ''}
                                       </span>
                                       <span className="text-gray-400">
-                                        {(item.quantity * item.price).toFixed(2)} €
+                                        {(convertToNumber(item.quantity) * convertToNumber(item.price)).toFixed(2)} €
                                       </span>
                                     </div>
                                   ))}
@@ -1381,7 +1662,7 @@ export default function MesReservationsPage() {
       {/* Modal de modification de commande de fruits de mer */}
       {showEditOrderModal && (
         <Modal 
-          title={`Commande de fruits de mer du ${new Date(editOrderFormData.pickupDate).toLocaleDateString('fr-FR', { 
+          title={`Commande de fruits de mer du ${new Date(editOrderData.pickupDate).toLocaleDateString('fr-FR', { 
             day: 'numeric', 
             month: 'long', 
             year: 'numeric' 
@@ -1398,7 +1679,7 @@ export default function MesReservationsPage() {
                   <input
                     type="date"
                     name="pickupDate"
-                    value={editOrderFormData.pickupDate}
+                    value={editOrderData.pickupDate}
                     onChange={handleEditOrderFormChange}
                     min={new Date().toISOString().split('T')[0]}
                     className="w-full p-2 rounded bg-[#333333] border border-[#4a4a4a] focus:outline-none focus:ring-2 focus:ring-[#C4B5A2]"
@@ -1410,7 +1691,7 @@ export default function MesReservationsPage() {
                   <label className="block text-sm font-medium mb-1">Heure de retrait*</label>
                   <select
                     name="pickupTime"
-                    value={editOrderFormData.pickupTime}
+                    value={editOrderData.pickupTime}
                     onChange={handleEditOrderFormChange}
                     className="w-full p-2 rounded bg-[#333333] border border-[#4a4a4a] focus:outline-none focus:ring-2 focus:ring-[#C4B5A2]"
                     required
@@ -1433,7 +1714,7 @@ export default function MesReservationsPage() {
                       type="radio"
                       name="isPickup"
                       value="true"
-                      checked={editOrderFormData.isPickup === true}
+                      checked={editOrderData.isPickup === true}
                       onChange={handleEditOrderFormChange}
                       className="h-4 w-4 mr-2"
                     />
@@ -1444,7 +1725,7 @@ export default function MesReservationsPage() {
                       type="radio"
                       name="isPickup"
                       value="false"
-                      checked={editOrderFormData.isPickup === false}
+                      checked={editOrderData.isPickup === false}
                       onChange={handleEditOrderFormChange}
                       className="h-4 w-4 mr-2"
                     />
@@ -1457,7 +1738,7 @@ export default function MesReservationsPage() {
                 <label className="block text-sm font-medium mb-1">Demandes spéciales</label>
                 <textarea
                   name="specialRequests"
-                  value={editOrderFormData.specialRequests || ''}
+                  value={editOrderData.specialRequests || ''}
                   onChange={handleEditOrderFormChange}
                   className="w-full p-2 rounded bg-[#333333] border border-[#4a4a4a] focus:outline-none focus:ring-2 focus:ring-[#C4B5A2] min-h-[100px]"
                   placeholder="Instructions particulières pour votre commande..."

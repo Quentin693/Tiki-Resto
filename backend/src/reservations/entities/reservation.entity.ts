@@ -42,4 +42,16 @@ export class Reservation {
   @ApiProperty({ example: 1, description: 'ID de l\'utilisateur', required: false })
   @Column({ nullable: true })
   userId: number;
+
+  @ApiProperty({ description: 'Indique si c\'est un événement (permet >20 personnes)', example: false, required: false })
+  @Column({ default: false, nullable: true })
+  isEvent: boolean;
+  
+  @ApiProperty({ description: 'Numéro de table attribué à la réservation', example: 5, required: false })
+  @Column({ nullable: true })
+  tableNumber: number;
+  
+  @ApiProperty({ description: 'Indique si le client est arrivé au restaurant', example: false, required: false })
+  @Column({ default: false })
+  isArrived: boolean;
 } 

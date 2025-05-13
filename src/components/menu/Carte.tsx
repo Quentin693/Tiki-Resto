@@ -287,6 +287,10 @@ export default function Carte() {
     return `${API_URL}${imagePath}`;
   };
 
+  const hasImage = (imagePath: string) => {
+    return imagePath && imagePath !== '';
+  };
+
   const renderForm = () => (
     <div className="bg-[#2a2a2a] rounded-xl p-8 border-2 border-[#C4B5A2] mb-8">
       <input
@@ -390,6 +394,8 @@ export default function Carte() {
       );
     }
     
+    const currentItem = menuItems[activeCategory][currentIndex];
+    
     return (
       <div 
         className="relative bg-[#2a2a2a] rounded-xl shadow-lg overflow-hidden border border-[#C4B5A2]"
@@ -397,71 +403,73 @@ export default function Carte() {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="relative h-64 overflow-hidden">
-          <div className="absolute inset-0 bg-black/30 z-10" />
-          <div className={`relative h-full transition-transform duration-300 ease-in-out ${isTransitioning ? 'opacity-50' : 'opacity-100'}`}>
-            <Image
-              src={getImageUrl(menuItems[activeCategory][currentIndex].imagePath)}
-              alt={menuItems[activeCategory][currentIndex].name}
-              fill
-              className="object-cover"
-              sizes="100vw"
-              priority
-            />
-          </div>
-
-          {/* Navigation buttons */}
-          <button 
-            onClick={handlePrevSlide}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/50 p-2 rounded-full hover:bg-black/70"
-          >
-            <ChevronLeft size={24} />
-          </button>
-          <button 
-            onClick={handleNextSlide}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-black/50 p-2 rounded-full hover:bg-black/70"
-          >
-            <ChevronRight size={24} />
-          </button>
-
-          {/* Pagination dots */}
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex gap-2">
-            {menuItems[activeCategory].map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentIndex(index)}
-                className={`w-2 h-2 rounded-full transition-colors ${
-                  index === currentIndex ? 'bg-white' : 'bg-white/50'
-                }`}
+        {hasImage(currentItem.imagePath) && (
+          <div className="relative h-64 overflow-hidden">
+            <div className="absolute inset-0 bg-black/30 z-10" />
+            <div className={`relative h-full transition-transform duration-300 ease-in-out ${isTransitioning ? 'opacity-50' : 'opacity-100'}`}>
+              <Image
+                src={getImageUrl(currentItem.imagePath)}
+                alt={currentItem.name}
+                fill
+                className="object-cover"
+                sizes="100vw"
+                priority
               />
-            ))}
+            </div>
+
+            {/* Navigation buttons */}
+            <button 
+              onClick={handlePrevSlide}
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/50 p-2 rounded-full hover:bg-black/70"
+            >
+              <ChevronLeft size={24} />
+            </button>
+            <button 
+              onClick={handleNextSlide}
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-black/50 p-2 rounded-full hover:bg-black/70"
+            >
+              <ChevronRight size={24} />
+            </button>
+
+            {/* Pagination dots */}
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+              {menuItems[activeCategory].map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentIndex(index)}
+                  className={`w-2 h-2 rounded-full transition-colors ${
+                    index === currentIndex ? 'bg-white' : 'bg-white/50'
+                  }`}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="p-6">
           <div className="flex justify-between items-start mb-2">
             <h3 className="text-xl font-semibold flex-1 pr-4">
-              {menuItems[activeCategory][currentIndex].name}
+              {currentItem.name}
             </h3>
             <span className="text-lg font-bold text-[#C4B5A2] whitespace-nowrap">
-              {Number(menuItems[activeCategory][currentIndex].price).toFixed(2).replace('.', ',')} €
+              {Number(currentItem.price).toFixed(2).replace('.', ',')} €
             </span>
           </div>
           <p className="text-gray-400">
-            {menuItems[activeCategory][currentIndex].description}
+            {currentItem.description}
           </p>
           
           {user?.role === 'admin' && (
             <div className="flex gap-2 mt-4 pt-4 border-t border-gray-700">
               <button
-                onClick={() => handleEditItem(menuItems[activeCategory][currentIndex])}
+                onClick={() => handleEditItem(currentItem)}
                 className="flex items-center gap-2 bg-blue-600 px-4 py-2 rounded hover:bg-blue-700"
               >
                 <Pencil size={20} />
                 Modifier
               </button>
               <button
-                onClick={() => handleDeleteItem(menuItems[activeCategory][currentIndex].id)}
+                onClick={() => handleDeleteItem(currentItem.id)}
                 className="flex items-center gap-2 bg-red-600 px-4 py-2 rounded hover:bg-red-700"
               >
                 <Trash2 size={20} />
@@ -490,16 +498,18 @@ export default function Carte() {
             key={index}
             className="bg-[#2a2a2a] rounded-xl shadow-lg overflow-hidden border border-[#C4B5A2]"
           >
-            <div className="relative h-48 overflow-hidden">
-              <div className="absolute inset-0 bg-black/30 z-10" />
-              <Image
-                src={getImageUrl(item.imagePath)}
-                alt={item.name}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              />
-            </div>
+            {hasImage(item.imagePath) && (
+              <div className="relative h-48 overflow-hidden">
+                <div className="absolute inset-0 bg-black/30 z-10" />
+                <Image
+                  src={getImageUrl(item.imagePath)}
+                  alt={item.name}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                />
+              </div>
+            )}
             <div className="p-6">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-xl font-semibold flex-1 pr-4">{item.name}</h3>

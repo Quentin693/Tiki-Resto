@@ -59,13 +59,13 @@ export default function HomePage() {
     },
     {
       image: "/image5.png",
-      title: "Une vue panoramique sur la mer",
+      title: "Une vue panoramique sur l'eau",
       subtitle: "Vue imprenable sur le Grand Large"
     },
     {
-      image: "/image.png",
+      image: "/Brasero.jpg",
       title: "Une expérience culinaire unique",
-      subtitle: "Saveurs exotiques & Ambiance tropicale"
+      subtitle: "Saveurs exotiques & Ambiance chaleureuse"
     }
   ];
 
@@ -89,12 +89,33 @@ export default function HomePage() {
       observer.observe(item);
     });
     
+    // Détection du défilement jusqu'en bas de la page
+    const handleScroll = () => {
+      // La hauteur totale de la page, incluant ce qui n'est pas visible
+      const totalPageHeight = document.body.scrollHeight;
+      // La hauteur de la fenêtre du navigateur
+      const windowHeight = window.innerHeight;
+      // Position actuelle du défilement depuis le haut
+      const scrollPosition = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+      
+      // Si l'utilisateur est proche du bas de la page (à 50px près)
+      if (scrollPosition + windowHeight >= totalPageHeight - 50) {
+        // Rediriger vers la page de réservation
+        window.location.href = '/reserver';
+      }
+    };
+    
+    // Ajouter l'écouteur d'événement de défilement
+    window.addEventListener('scroll', handleScroll);
+    
     return () => {
       clearInterval(timer);
       observer.disconnect();
+      // Nettoyer l'écouteur d'événement de défilement
+      window.removeEventListener('scroll', handleScroll);
     };
   }, []);
-
+  
   return (
     <>
       <Head>
@@ -135,7 +156,7 @@ export default function HomePage() {
         </div>
 
         {/* Hero Section avec Slider - prend toute la hauteur et largeur de la fenêtre */}
-        <div className="relative w-full h-screen z-10 -mt-20 sm:-mt-24 overflow-hidden">
+        <div className="relative w-full h-screen z-10 overflow-hidden">
           {slides.map((slide, index) => (
             <div
               key={index}
@@ -156,74 +177,75 @@ export default function HomePage() {
               >
                 <div className="absolute inset-0 bg-black/35" />
               </div>
-              <div className="relative h-full flex flex-col items-center justify-center text-center px-4 z-20">
-                {/* Logo et texte centrés avec design épuré */}
-                <div className="flex flex-col items-center justify-center mt-24 sm:mt-28 max-w-screen-xl mx-auto">
-                  {/* Titre Tiki Resto avec logo en dessous */}
-                  <div className="flex flex-col items-center justify-center mb-4">
-                    <h2 className="font-didot text-6xl sm:text-7xl md:text-8xl font-light tracking-widest text-white leading-none capitalize">
-                      TIKI  
-                    </h2>
-                    
-                    <img 
-                      src="/logos/TikiLogo.png"
-                      alt="Tiki Logo"
-                      className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 my-4 opacity-95"
-                    />
-                  </div>
-                  
-                  {/* Sous-titre avec la même font */}
-                  <p className="font-allura text-3xl sm:text-4xl md:text-5xl text-[#e8dcc5] tracking-wide leading-none mb-6">
-                    Au Bord de l &apos;eau
-                  </p>
-                  
-                  {/* Séparateur élégant */}
-                  <div className="w-48 sm:w-56 md:w-64 h-[1px] bg-gradient-to-r from-transparent via-[#e8dcc5]/70 to-transparent mb-12"></div>
-                  
-                  {/* Titre du slide - design plus épuré */}
-                  <h1 className="font-didot text-5xl sm:text-6xl md:text-7xl font-light text-white tracking-wide mb-3">
-                    {slide.title}
-                  </h1>
-                  
-                  {/* Sous-titre du slide */}
-                  <p className="text-lg sm:text-xl md:text-2xl text-[#e8dcc5]/90 max-w-2xl font-light mb-12">
-                    {slide.subtitle}
-                  </p>
-                  
-                  {/* Bouton de réservation plus élégant */}
-                  <a
-                    href="/reserver"
-                    className="group relative overflow-hidden bg-transparent text-[#e8dcc5] font-didot text-xl font-medium px-12 py-4 tracking-wider uppercase transition-all duration-500"
-                  >
-                    <span className="relative z-10">Réservez Maintenant</span>
-                    <span className="absolute inset-0 border border-[#e8dcc5]/70 group-hover:border-[#e8dcc5] transition-colors duration-500"></span>
-                    <span className="absolute bottom-0 left-0 right-0 h-0 bg-[#e8dcc5]/10 group-hover:h-full transition-all duration-300 ease-out"></span>
-                    <span className="absolute -bottom-1 left-0 right-0 h-[1px] bg-[#e8dcc5]/50 group-hover:bg-[#e8dcc5] transition-colors duration-500"></span>
-                  </a>
-                </div>
-
-                {/* Indicateurs de slide plus discrets */}
-                <div className="absolute bottom-12 sm:bottom-16 left-0 right-0">
-                  <div className="flex justify-center space-x-5">
-                    {slides.map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentSlide(index)}
-                        className={`
-                          h-[2px] transition-all duration-300
-                          ${currentSlide === index 
-                            ? 'w-12 bg-[#e8dcc5]' 
-                            : 'w-12 bg-white/30 hover:bg-white/50'
-                          }
-                        `}
-                        aria-label={`Slide ${index + 1}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
             </div>
           ))}
+          
+          {/* Contenu Hero avec Titre et Bouton */}
+          <div className="relative h-full w-full flex flex-col items-center justify-center text-center px-4">
+            <div className="flex flex-col items-center justify-center max-w-screen-xl mx-auto">
+              {/* Titre Tiki Resto avec logo en dessous */}
+              <div className="flex flex-col items-center justify-center mb-4">
+                <h2 className="font-didot text-8xl sm:text-7xl md:text-8xl font-light tracking-widest text-white leading-none capitalize">
+                  TIKI  
+                </h2>
+                
+                <img 
+                  src="/logos/TikiLogo.png"
+                  alt="Tiki Logo"
+                  className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 my-4 opacity-95"
+                />
+              </div>
+              
+              {/* Sous-titre avec la même font */}
+              <p className="font-allura text-10xl sm:text-6xl md:text-5xl text-[#e8dcc5] tracking-wide leading-none mb-6">
+                Au Bord de l &apos;eau
+              </p>
+              
+              {/* Séparateur élégant */}
+              <div className="w-48 sm:w-56 md:w-64 h-[1px] bg-gradient-to-r from-transparent via-[#e8dcc5]/70 to-transparent mb-12"></div>
+              
+              {/* Titre du slide - design plus épuré */}
+              <h1 className="font-didot text-5xl sm:text-6xl md:text-7xl font-light text-white tracking-wide mb-3">
+                {slides[currentSlide].title}
+              </h1>
+              
+              {/* Sous-titre du slide */}
+              <p className="text-lg sm:text-xl md:text-2xl text-[#e8dcc5]/90 max-w-2xl font-light mb-12">
+                {slides[currentSlide].subtitle}
+              </p>
+              
+              {/* Bouton de réservation plus élégant */}
+              <a
+                href="/reserver"
+                className="group relative overflow-hidden bg-transparent text-[#e8dcc5] font-didot text-xl font-medium px-12 py-4 tracking-wider uppercase transition-all duration-500"
+              >
+                <span className="relative z-10">Réservez Maintenant</span>
+                <span className="absolute inset-0 border border-[#e8dcc5]/70 group-hover:border-[#e8dcc5] transition-colors duration-500"></span>
+                <span className="absolute bottom-0 left-0 right-0 h-0 bg-[#e8dcc5]/10 group-hover:h-full transition-all duration-300 ease-out"></span>
+                <span className="absolute -bottom-1 left-0 right-0 h-[1px] bg-[#e8dcc5]/50 group-hover:bg-[#e8dcc5] transition-colors duration-500"></span>
+              </a>
+            </div>
+
+            {/* Indicateurs de slide plus discrets */}
+            <div className="absolute bottom-12 sm:bottom-16 left-0 right-0">
+              <div className="flex justify-center space-x-5">
+                {slides.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentSlide(index)}
+                    className={`
+                      h-[2px] transition-all duration-300
+                      ${currentSlide === index 
+                        ? 'w-12 bg-[#e8dcc5]' 
+                        : 'w-12 bg-white/30 hover:bg-white/50'
+                      }
+                    `}
+                    aria-label={`Slide ${index + 1}`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Contenu principal - au-dessus du background */}

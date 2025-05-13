@@ -110,4 +110,9 @@ export class CreateSeafoodOrderDto {
   @IsNumber()
   @Min(0)
   totalPrice: number;
+
+  @ApiProperty({ description: 'ID de l\'utilisateur (optionnel, pour les utilisateurs connectés)' })
+  @IsNumber()
+  @IsOptional()
+  userId?: number;
 } 
