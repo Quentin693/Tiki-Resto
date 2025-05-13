@@ -30,8 +30,31 @@ const didot = localFont({
 })
 
 export const metadata = {
-  title: 'Restaurant Au Tiki',
+  title: 'Tiki Au bord de l\'eau',
   description: 'Bienvenue au restaurant Au Tiki',
+  icons: {
+    icon: '/logos/TikiLogo.png',
+    apple: '/logos/TikiLogo.png',
+    shortcut: '/logos/TikiLogo.png'
+  },
+  openGraph: {
+    images: [{
+      url: '/logos/TikiLogo.png',
+      width: 1200,
+      height: 630,
+      alt: 'Tiki Au bord de l\'eau',
+    }],
+    type: 'website',
+    locale: 'fr_FR',
+    siteName: 'Tiki Au bord de l\'eau',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: [{
+      url: '/logos/TikiLogo.png',
+      alt: 'Tiki Au bord de l\'eau',
+    }],
+  },
   viewport: 'width=device-width, initial-scale=1, maximum-scale=1'
 }
 
