@@ -110,7 +110,7 @@ export default function SpacesSection() {
       number: "03",
       title: "Le Petit Salon",
       description: "Pour des moments plus privés, notre petit salon vous accueille dans un écrin de confort et d'élégance. Décoré avec des pièces authentiques, cet espace est parfait pour les dîners romantiques ou les conversations intimes entre amis.",
-      imagePath: "/petitsalon.jpg",
+      imagePath: "/imagespetitsalon.jpg",
       imageAlt: "Petit salon cosy avec décoration"
     },
     {
@@ -124,7 +124,7 @@ export default function SpacesSection() {
       number: "05",
       title: "Le Coin Pétanque",
       description: "Quoi de mieux qu'un petit apéro, d'un coucher de soleil et d'un match de pétanque ?",
-      imagePath: "/petanque.jpg",
+      imagePath: "/images/petanque.jpg",
       imageAlt: "Espace pétanque en bord de mer pour les soirées"
     }
   ];
