@@ -52,7 +52,14 @@ export default function Carte() {
       const response = await fetch(`${API_URL}/carte`);
       if (!response.ok) throw new Error('Failed to load menu items');
       const data = await response.json();
-      setMenuItems(data);
+      
+      // Trier les éléments par prix croissant dans chaque catégorie
+      const sortedData: Record<string, MenuItem[]> = {};
+      for (const category in data) {
+        sortedData[category] = [...data[category]].sort((a, b) => a.price - b.price);
+      }
+      
+      setMenuItems(sortedData);
       setIsLoading(false);
     } catch (error) {
       console.error('Failed to load menu items:', error);
