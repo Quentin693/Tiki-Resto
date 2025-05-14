@@ -33,13 +33,13 @@ export const metadata = {
   title: 'Tiki Au bord de l\'eau',
   description: 'Bienvenue au restaurant Au Tiki',
   icons: {
-    icon: '/logo.png',
-    apple: '/logo.png',
-    shortcut: '/logo.png'
+    icon: '/logos/TikiLogo.png',
+    apple: '/logos/TikiLogo.png',
+    shortcut: '/logos/TikiLogo.png'
   },
   openGraph: {
     images: [{
-      url: '/logo.png',
+      url: '/logos/TikiLogo.png',
       width: 1200,
       height: 630,
       alt: 'Tiki Au bord de l\'eau',
@@ -51,7 +51,7 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     images: [{
-      url: '/logo.png',
+      url: '/logos/TikiLogo.png',
       alt: 'Tiki Au bord de l\'eau',
     }],
   },
