@@ -1,0 +1,1 @@
+{"version":3,"file":"initial-data.js","sourceRoot":"","sources":["../../../src/personnel/migrations/initial-data.ts"],"names":[],"mappings":";;;AAEA,MAAa,iCAAiC;IACrC,KAAK,CAAC,EAAE,CAAC,WAAwB;QACtC,MAAM,WAAW,CAAC,KAAK,CAAC;;;;;;;KAOvB,CAAC,CAAC;IACL,CAAC;IAEM,KAAK,CAAC,IAAI,CAAC,WAAwB;QACxC,MAAM,WAAW,CAAC,KAAK,CAAC,mDAAmD,CAAC,CAAC;IAC/E,CAAC;CACF;AAfD,8EAeC"}
