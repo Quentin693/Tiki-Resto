@@ -12,7 +12,7 @@ async function bootstrap() {
   
   // Configuration CORS
   app.enableCors({
-    origin: ['https://tikilyon.fr', 'http://tikilyon.fr', 'http://www.tikilyon.fr', 'https://www.tikilyon.fr'],
+    origin: '*',  // Temporairement permet toutes les origines
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
     allowedHeaders: 'Content-Type, Accept, Authorization',
@@ -40,8 +40,6 @@ async function bootstrap() {
       return { statusCode: 400, message: 'Bad Request', errors: formattedErrors };
     }
   }));
-
-  app.setGlobalPrefix('api');
   
   // Configuration Swagger
   const config = new DocumentBuilder()
@@ -58,7 +56,7 @@ async function bootstrap() {
   const port = configService.get('PORT') || 3001;
   const host = configService.get('HOST') || 'localhost';
 
-  await app.listen(process.env.PORT || 3001, '0.0.0.0');
+  await app.listen(port, host);
    (`Application is running on: http://${host}:${port}`);
    (`Swagger documentation: http://${host}:${port}/api`);
 }
