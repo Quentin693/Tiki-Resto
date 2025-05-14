@@ -32,6 +32,9 @@ import { SeafoodOrdersModule } from './seafood-orders/seafood-orders.module';
         database: configService.get('DB_NAME', 'tiki_resto'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: configService.get('NODE_ENV') !== 'production',
+        ssl: {
+          rejectUnauthorized: false, // Pour le développement; considérez true pour la production
+        },
       }),
     }),
     AuthModule,
