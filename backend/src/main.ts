@@ -40,6 +40,8 @@ async function bootstrap() {
       return { statusCode: 400, message: 'Bad Request', errors: formattedErrors };
     }
   }));
+
+  app.setGlobalPrefix('api');
   
   // Configuration Swagger
   const config = new DocumentBuilder()
