@@ -110,7 +110,7 @@ export default function SpacesSection() {
       number: "03",
       title: "Le Petit Salon",
       description: "Pour des moments plus privés, notre petit salon vous accueille dans un écrin de confort et d'élégance. Décoré avec des pièces authentiques, cet espace est parfait pour les dîners romantiques ou les conversations intimes entre amis.",
-      imagePath: "/images/petitsalon.jpg",
+      imagePath: "/petitsalon.png",
       imageAlt: "Petit salon cosy avec décoration"
     },
     {
