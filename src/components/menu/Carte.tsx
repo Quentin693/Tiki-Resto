@@ -553,29 +553,6 @@ export default function Carte() {
     );
   };
 
-  useEffect(() => {
-    // Test direct de la connexion API
-    const testConnection = async () => {
-      try {
-        console.log("Testing API connection...");
-        const response = await fetch("https://tiki-resto.onrender.com/carte", {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
-        
-        console.log("Response status:", response.status);
-        const data = await response.json();
-        console.log("Data received:", data);
-      } catch (error) {
-        console.error("API connection error:", error);
-      }
-    };
-    
-    testConnection();
-  }, []);
-
   return (
     <section>
       <div className="text-center mb-10">
