@@ -64,12 +64,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr">
-      <body className={`${inter.className} ${pacifico.variable} ${dynapuff.variable} ${allura.variable} ${didot.variable} bg-[#0f0f0f]`}>
+    <html lang="fr" className="h-full">
+      <body className={`${inter.className} ${pacifico.variable} ${dynapuff.variable} ${allura.variable} ${didot.variable} bg-[#0f0f0f] min-h-screen flex flex-col`}>
         <AuthProvider>
           <Toaster />
           <Navbar />
-          <main className="relative z-10">
+          <main className="relative z-10 flex-grow">
             {children}
           </main>
           <Footer />

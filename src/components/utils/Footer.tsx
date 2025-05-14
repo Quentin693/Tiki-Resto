@@ -9,7 +9,7 @@ export default function Footer() {
     const pathname = usePathname();
     
     return (
-        <footer className="bg-[#1a1a1a] border-t border-#C4B5A2 z-[1000] relative">
+        <footer className="bg-[#1a1a1a] border-t border-#C4B5A2 mt-auto w-full">
         <div className="container mx-auto px-4 py-8 sm:py-12">
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
@@ -71,37 +71,25 @@ export default function Footer() {
                 <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                   <a 
                     href="/mentions-legales" 
-                    className="text-gray-400 hover:text-[#C4B5A2] text-xs sm:text-sm transition-colors duration-300 relative z-[1001] pointer-events-auto"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
+                    className="text-gray-400 hover:text-[#C4B5A2] text-xs sm:text-sm transition-colors duration-300"
                   >
                     Mentions légales
                   </a>
                   <a 
                     href="/politique-confidentialite" 
-                    className="text-gray-400 hover:text-[#C4B5A2] text-xs sm:text-sm transition-colors duration-300 relative z-[1001] pointer-events-auto"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
+                    className="text-gray-400 hover:text-[#C4B5A2] text-xs sm:text-sm transition-colors duration-300"
                   >
                     Politique de confidentialité
                   </a>
                   <a 
                     href="/cookies" 
-                    className="text-gray-400 hover:text-[#C4B5A2] text-xs sm:text-sm transition-colors duration-300 relative z-[1001] pointer-events-auto"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
+                    className="text-gray-400 hover:text-[#C4B5A2] text-xs sm:text-sm transition-colors duration-300"
                   >
                     Gestion des cookies
                   </a>
                   <a 
                     href="/conditions-utilisation" 
-                    className="text-gray-400 hover:text-[#C4B5A2] text-xs sm:text-sm transition-colors duration-300 relative z-[1001] pointer-events-auto"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
+                    className="text-gray-400 hover:text-[#C4B5A2] text-xs sm:text-sm transition-colors duration-300"
                   >
                     CGU
                   </a>

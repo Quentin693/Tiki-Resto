@@ -1,602 +1,293 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
-import { Pencil, Trash2, Plus, X, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, FileText, ChevronLeft, ChevronRight, Eye, ExternalLink } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-interface MenuItem {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  imagePath: string;
-  category: string;
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-// Afficher la valeur pour déboguer
-console.log("NEXT_PUBLIC_API_URL:", process.env.NEXT_PUBLIC_API_URL);
-
-// Forcer l'URL si nécessaire pour tester
-const API_URL = "https://tiki-resto.onrender.com";
+// Images de plats avec descriptions pour le diaporama
+const featuredDishes = [
+  {
+    id: 1,
+    name: "Tartare de Boeuf",
+    description: "Tartare de boeuf au couteau, frites fraîches et bouquet de salade",
+    image: "/plats/789e4106a9510e5758f1323d62a1bf0392.jpeg", // Assurez-vous que ces images existent dans votre dossier public
+    category: "Plats"
+  },
+  {
+    id: 2,
+    name: "Tataki de Thon",
+    description: "Tataki de thon en croûte de sésame, sauce thaï et légumes croquants",
+    image: "/plats/11089de9dd601532210ee8f589437272a1.jpeg",
+    category: "Entrées"
+  },
+  {
+    id: 3,
+    name: "Tartaki de Boeuf",
+    description: "Risotto de coquillettes, chiffonnade de jambon truffé et oeuf parfait",
+    image: "/plats/cccba0db20dfc054e847947d1410686a6.jpeg",
+    category: "Plats"
+  },
+  {
+    id: 4,
+    name: "Grenouilles comme en Dombes",
+    description: "Grenouilles en persillade, accompagnées de pommes de terre grenaille",
+    image: "/plats/grenouilles.jpeg",
+    category: "Plats"
+  },
+  {
+    id: 5,
+    name: "Brioche Perdue Nanterre",
+    description: "Notre brioche perdue fait maison selon l'inspiration du chef",
+    image: "/plats/e4a171e7cad3c22b71080b6284b590934.jpeg",
+    category: "Desserts"
+  }
+];
 
 export default function Carte() {
-  const { user, token } = useAuth();
-  const [activeCategory, setActiveCategory] = useState('entrees');
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
-  const [isAddingItem, setIsAddingItem] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [touchStart, setTouchStart] = useState(0);
-  const [touchEnd, setTouchEnd] = useState(0);
-  const [isMobile, setIsMobile] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [menuItems, setMenuItems] = useState<Record<string, MenuItem[]>>({});
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
+  const [pdfUrl, setPdfUrl] = useState('/menus/carte.pdf'); // Chemin par défaut vers votre PDF statique
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // Détection du mobile
+  // Fonction pour normaliser le chemin du PDF en URL absolue
+  const getAbsolutePdfUrl = () => {
+    // Si c'est déjà une URL absolue, on la retourne telle quelle
+    if (pdfUrl.startsWith('http')) return pdfUrl;
+    
+    // Sinon, on construit l'URL absolue en se basant sur l'emplacement actuel
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return `${origin}${pdfUrl.startsWith('/') ? '' : '/'}${pdfUrl}`;
+  };
+
+  // Effet pour vérifier si le PDF existe
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
+    const checkPdfExists = async () => {
+      try {
+        // Pour l'instant, nous utilisons un PDF statique
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Failed to check PDF:', error);
+        toast.error('Erreur lors du chargement du menu');
+        setIsLoading(false);
+      }
     };
     
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    checkPdfExists();
   }, []);
 
-  // Chargement des données
-  useEffect(() => {
-    loadMenuItems();
-  }, []);
+  // Fonction pour passer à la diapositive suivante
+  const nextSlide = useCallback(() => {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
+    setCurrentSlide((prev) => (prev === featuredDishes.length - 1 ? 0 : prev + 1));
+    setTimeout(() => setIsTransitioning(false), 500);
+  }, [isTransitioning]);
 
-  const loadMenuItems = async () => {
+  // Fonction pour passer à la diapositive précédente
+  const prevSlide = useCallback(() => {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
+    setCurrentSlide((prev) => (prev === 0 ? featuredDishes.length - 1 : prev - 1));
+    setTimeout(() => setIsTransitioning(false), 500);
+  }, [isTransitioning]);
+
+  // Auto-défilement
+  useEffect(() => {
+    const timer = setInterval(() => {
+      nextSlide();
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [nextSlide]);
+
+  // Pour les administrateurs qui veulent uploader un nouveau PDF
+  const handleUploadNewPdf = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
+    
+    const file = e.target.files[0];
+    if (file.type !== 'application/pdf') {
+      toast.error('Veuillez sélectionner un fichier PDF');
+      return;
+    }
+    
+    setIsLoading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    
     try {
-      const response = await fetch(`${API_URL}/carte`);
-      if (!response.ok) throw new Error('Failed to load menu items');
-      const data = await response.json();
+      // Commentez cette section et implémentez-la quand votre API sera prête
+      // const response = await fetch(`${API_URL}/uploads/menu-pdf`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Authorization': `Bearer ${token}`,
+      //   },
+      //   body: formData,
+      // });
       
-      // Trier les éléments par prix croissant dans chaque catégorie
-      const sortedData: Record<string, MenuItem[]> = {};
-      for (const category in data) {
-        sortedData[category] = [...data[category]].sort((a, b) => a.price - b.price);
-      }
+      // if (!response.ok) throw new Error('Failed to upload PDF');
+      // const data = await response.json();
+      // setPdfUrl(data.pdfUrl);
       
-      setMenuItems(sortedData);
+      // Pour l'instant, nous continuons à utiliser le PDF statique
+      toast.success('Nouveau menu PDF téléchargé');
       setIsLoading(false);
     } catch (error) {
-      console.error('Failed to load menu items:', error);
-      toast.error('Erreur lors du chargement du menu');
+      console.error('Failed to upload PDF:', error);
+      toast.error('Erreur lors du téléchargement du PDF');
       setIsLoading(false);
     }
   };
 
-  const [newItemData, setNewItemData] = useState({
-    name: "",
-    description: "",
-    price: "",
-    imagePath: "",
-    category: activeCategory,
-  });
-  const [isUploading, setIsUploading] = useState(false);
-
-  // When activeCategory changes, update newItemData.category
-  useEffect(() => {
-    if (!isEditing) {
-      setNewItemData(prev => ({...prev, category: activeCategory}));
-    }
-  }, [activeCategory, isEditing]);
-
-  const uploadImage = async (file: File) => {
-    if (!file) return null;
-    
-    setIsUploading(true);
-    
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const response = await fetch(`${API_URL}/uploads/image`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        throw new Error('Erreur lors de l\'upload de l\'image');
-      }
-      
-      const data = await response.json();
-      setIsUploading(false);
-      
-      return data.imagePath;
-    } catch (error) {
-      console.error('Failed to upload image:', error);
-      toast.error('Erreur lors de l\'upload de l\'image');
-      setIsUploading(false);
-      return null;
-    }
-  };
-
-  const handleAddItem = async () => {
-    try {
-      // Si une image est en attente d'upload mais pas encore traitée
-      if (isUploading) {
-        toast.error('Upload d\'image en cours, veuillez patienter');
-        return;
-      }
-      
-      const response = await fetch(`${API_URL}/carte`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: newItemData.name,
-          description: newItemData.description,
-          price: parseFloat(newItemData.price),
-          imagePath: newItemData.imagePath,
-          category: newItemData.category,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to add menu item');
-      }
-
-      await loadMenuItems();
-      setIsAddingItem(false);
-      setActiveCategory(newItemData.category);
-      setNewItemData({
-        name: "",
-        description: "",
-        price: "",
-        imagePath: "",
-        category: newItemData.category,
-      });
-      toast.success('Plat ajouté avec succès');
-    } catch (error) {
-      console.error('Failed to add menu item:', error);
-      toast.error('Erreur lors de l\'ajout du plat');
-    }
-  };
-
-  const handleEditItem = async (item: MenuItem) => {
-    setEditingItem(item);
-    setNewItemData({
-      name: item.name,
-      description: item.description,
-      price: item.price.toString(),
-      imagePath: item.imagePath || "",
-      category: item.category,
-    });
-    setIsEditing(true);
-  };
-
-  const handleUpdateItem = async () => {
-    if (!editingItem) return;
-
-    try {
-      const response = await fetch(`${API_URL}/carte/${editingItem.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: newItemData.name,
-          description: newItemData.description,
-          price: parseFloat(newItemData.price),
-          imagePath: newItemData.imagePath,
-          category: newItemData.category,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update menu item');
-      }
-
-      await loadMenuItems();
-      setIsEditing(false);
-      setEditingItem(null);
-      toast.success('Plat mis à jour avec succès');
-    } catch (error) {
-      console.error('Failed to update menu item:', error);
-      toast.error('Erreur lors de la mise à jour du plat');
-    }
-  };
-
-  const handleDeleteItem = async (id: number) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce plat ?')) return;
-
-    try {
-      const response = await fetch(`${API_URL}/carte/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete menu item');
-      }
-
-      await loadMenuItems();
-      toast.success('Plat supprimé avec succès');
-    } catch (error) {
-      console.error('Failed to delete menu item:', error);
-      toast.error('Erreur lors de la suppression du plat');
-    }
-  };
-
-  const [categories] = useState([
-    { id: 'entrees', name: 'Entrées' },
-    { id: 'plats', name: 'Plats' },
-    { id: 'desserts', name: 'Desserts' },
-    { id: 'boissons', name: 'Boissons' }
-  ]);
-
-  // Gestionnaires de navigation du carrousel
-  const handleNextSlide = () => {
-    if (isTransitioning || !menuItems[activeCategory] || menuItems[activeCategory].length === 0) return;
-    setIsTransitioning(true);
-    setCurrentIndex((prevIndex) => 
-      prevIndex === menuItems[activeCategory].length - 1 ? 0 : prevIndex + 1
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#C4B5A2]"></div>
+      </div>
     );
-    setTimeout(() => setIsTransitioning(false), 300);
-  };
+  }
 
-  const handlePrevSlide = () => {
-    if (isTransitioning || !menuItems[activeCategory] || menuItems[activeCategory].length === 0) return;
-    setIsTransitioning(true);
-    setCurrentIndex((prevIndex) => 
-      prevIndex === 0 ? menuItems[activeCategory].length - 1 : prevIndex - 1
-    );
-    setTimeout(() => setIsTransitioning(false), 300);
-  };
+  return (
+    <section className="min-h-[calc(100vh-200px)] py-10">
+      <div className="text-center mb-14">
+        <h2 className="text-5xl font-didot-bold mb-4">Notre Carte</h2>
+        <div className="w-16 h-0.5 bg-[#C4B5A2] mx-auto mb-8"></div>
+      </div>
 
-  // Gestionnaires tactiles
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.touches[0].clientX);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.touches[0].clientX);
-  };
-
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > 50;
-    const isRightSwipe = distance < -50;
-
-    if (isLeftSwipe) {
-      handleNextSlide();
-    }
-    if (isRightSwipe) {
-      handlePrevSlide();
-    }
-
-    setTouchStart(0);
-    setTouchEnd(0);
-  };
-
-  const getImageUrl = (imagePath: string) => {
-    if (!imagePath) return '/image2.png';
-    if (imagePath.startsWith('http')) return imagePath;
-    if (!imagePath.startsWith('/uploads/')) {
-      return `${API_URL}/uploads${imagePath}`;
-    }
-    return `${API_URL}${imagePath}`;
-  };
-
-  const hasImage = (imagePath: string) => {
-    return imagePath && imagePath !== '';
-  };
-
-  const renderForm = () => (
-    <div className="bg-[#2a2a2a] rounded-xl p-8 border-2 border-[#C4B5A2] mb-8">
-      <input
-        className="w-full mb-4 p-2 bg-gray-800 rounded"
-        placeholder="Nom du plat"
-        value={newItemData.name}
-        onChange={(e) => setNewItemData({ ...newItemData, name: e.target.value })}
-      />
-      <textarea
-        className="w-full mb-4 p-2 bg-gray-800 rounded"
-        placeholder="Description"
-        value={newItemData.description}
-        onChange={(e) => setNewItemData({ ...newItemData, description: e.target.value })}
-      />
-      <input
-        className="w-full mb-4 p-2 bg-gray-800 rounded"
-        placeholder="Prix (ex: 14)"
-        type="number"
-        value={newItemData.price}
-        onChange={(e) => setNewItemData({ ...newItemData, price: e.target.value })}
-      />
-      <div className="mb-4">
-        <input
-          className="w-full p-2 bg-gray-800 rounded"
-          placeholder="Chemin de l'image (ex: entrees/salade.jpg)"
-          value={newItemData.imagePath}
-          onChange={(e) => setNewItemData({ ...newItemData, imagePath: e.target.value })}
-        />
-        <div className="mt-2 relative border-2 border-dashed border-gray-600 rounded p-4">
-          <input
-            type="file"
-            accept="image/*"
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            onChange={async (e) => {
-              if (e.target.files && e.target.files[0]) {
-                const file = e.target.files[0];
-                const imagePath = await uploadImage(file);
-                
-                if (imagePath) {
-                  setNewItemData({ ...newItemData, imagePath });
-                  toast.success('Image téléchargée avec succès');
-                }
-              }
-            }}
-          />
-          <div className="text-center text-gray-400">
-            {isUploading ? (
-              <p>Upload en cours...</p>
-            ) : (
-              <>
-                <p>Déposez votre image ici ou cliquez pour sélectionner</p>
-                {newItemData.imagePath && (
-                  <p className="text-green-500 mt-2">Image sélectionnée: {newItemData.imagePath.split('/').pop()}</p>
-                )}
-              </>
-            )}
+      <div className="max-w-5xl mx-auto px-4 flex flex-col lg:flex-row gap-12 items-center">
+        {/* Section PDF à gauche */}
+        <div className="w-full lg:w-1/2 bg-[#1a1a1a] p-8 rounded-lg border border-[#C4B5A2]/30 shadow-xl">
+          <div className="text-center">
+            <FileText size={40} className="mx-auto text-[#C4B5A2] mb-5" />
+            <h3 className="text-2xl font-didot-bold mb-3">Notre carte complète</h3>
+            <p className="text-gray-400 text-sm mb-8">Consultez notre carte pour découvrir tous nos plats</p>
+            
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <a 
+                href={getAbsolutePdfUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block px-8 py-3 border border-[#C4B5A2] text-[#C4B5A2] hover:bg-[#C4B5A2] hover:text-black transition-all duration-300 tracking-wide"
+              >
+                <span className="flex items-center justify-center">
+                  <ExternalLink className="mr-2" size={18} />
+                  Consulter
+                </span>
+              </a>
+              
+              <a 
+                href={getAbsolutePdfUrl()} 
+                download="Carte_TikiRestaurant.pdf" 
+                className="inline-block px-6 py-3 text-gray-400 hover:text-white transition-all duration-300 tracking-wide"
+              >
+                <span className="flex items-center justify-center">
+                  <Download className="mr-2" size={18} />
+                  Télécharger
+                </span>
+              </a>
+            </div>
+            
+            <p className="text-gray-500 text-xs mt-6">
+              Le fichier s'ouvrira dans un nouvel onglet et est compatible avec tous les appareils
+            </p>
           </div>
         </div>
-      </div>
-      <select
-        className="w-full mb-4 p-2 bg-gray-800 rounded"
-        value={newItemData.category}
-        onChange={(e) => setNewItemData({ ...newItemData, category: e.target.value })}
-      >
-        {categories.map((category) => (
-          <option key={category.id} value={category.id}>
-            {category.name}
-          </option>
-        ))}
-      </select>
-      <div className="flex justify-center gap-4 mt-6">
-        <button
-          onClick={isEditing ? handleUpdateItem : handleAddItem}
-          className="flex items-center gap-2 bg-green-600 px-6 py-2 rounded hover:bg-green-700 disabled:opacity-50"
-          disabled={isUploading}
-        >
-          <Check size={20} />
-          {isEditing ? "Mettre à jour" : "Ajouter"}
-        </button>
-        <button
-          onClick={() => {
-            setIsAddingItem(false);
-            setIsEditing(false);
-            setEditingItem(null);
-          }}
-          className="flex items-center gap-2 bg-red-600 px-6 py-2 rounded hover:bg-red-700"
-        >
-          <X size={20} />
-          Annuler
-        </button>
-      </div>
-    </div>
-  );
-
-  const renderMobileView = () => {
-    if (!menuItems[activeCategory] || menuItems[activeCategory].length === 0) {
-      return (
-        <div className="bg-[#2a2a2a] rounded-xl p-8 text-center">
-          <p>Aucun plat disponible dans cette catégorie.</p>
-        </div>
-      );
-    }
-    
-    const currentItem = menuItems[activeCategory][currentIndex];
-    
-    return (
-      <div 
-        className="relative bg-[#2a2a2a] rounded-xl shadow-lg overflow-hidden border border-[#C4B5A2]"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        {hasImage(currentItem.imagePath) && (
-          <div className="relative h-64 overflow-hidden">
-            <div className="absolute inset-0 bg-black/30 z-10" />
-            <div className={`relative h-full transition-transform duration-300 ease-in-out ${isTransitioning ? 'opacity-50' : 'opacity-100'}`}>
-              <Image
-                src={getImageUrl(currentItem.imagePath)}
-                alt={currentItem.name}
-                fill
-                className="object-cover"
-                sizes="100vw"
-                priority
-              />
+        
+        {/* Diaporama à droite avec taille réduite */}
+        <div className="w-full lg:w-1/2">
+          <h3 className="text-xl font-didot-bold mb-5 text-center lg:text-left">Nos Spécialités</h3>
+          
+          <div className="relative">
+            <div className="overflow-hidden rounded-lg shadow-lg">
+              <div 
+                className="flex transition-transform duration-700 ease-in-out"
+                style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+              >
+                {featuredDishes.map((dish) => (
+                  <div key={dish.id} className="w-full flex-shrink-0">
+                    <div className="relative aspect-[16/10] overflow-hidden">
+                      <Image
+                        src={dish.image}
+                        alt={dish.name}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, 500px"
+                        priority
+                      />
+                      
+                      {/* Overlay plus subtil */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent z-10" />
+                      
+                      {/* Texte en bas de l'image - style plus raffiné */}
+                      <div className="absolute bottom-0 left-0 right-0 p-5 z-20">
+                        <span className="inline-block px-2 py-1 mb-2 rounded-sm bg-[#C4B5A2]/80 text-black text-xs font-medium uppercase tracking-wider">{dish.category}</span>
+                        <h4 className="text-white text-xl font-didot-bold mb-1">{dish.name}</h4>
+                        <p className="text-gray-200 text-sm font-light">{dish.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-
-            {/* Navigation buttons */}
-            <button 
-              onClick={handlePrevSlide}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/50 p-2 rounded-full hover:bg-black/70"
+            
+            {/* Navigation buttons plus petits et élégants */}
+            <button
+              onClick={prevSlide}
+              className="absolute left-3 top-1/2 -translate-y-1/2 z-30 bg-black/40 hover:bg-[#C4B5A2] p-2 rounded-full hover:text-black transition-all duration-300 text-white"
+              aria-label="Plat précédent"
             >
-              <ChevronLeft size={24} />
+              <ChevronLeft size={20} />
             </button>
-            <button 
-              onClick={handleNextSlide}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-black/50 p-2 rounded-full hover:bg-black/70"
+            
+            <button
+              onClick={nextSlide}
+              className="absolute right-3 top-1/2 -translate-y-1/2 z-30 bg-black/40 hover:bg-[#C4B5A2] p-2 rounded-full hover:text-black transition-all duration-300 text-white"
+              aria-label="Plat suivant"
             >
-              <ChevronRight size={24} />
+              <ChevronRight size={20} />
             </button>
-
-            {/* Pagination dots */}
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex gap-2">
-              {menuItems[activeCategory].map((_, index) => (
+            
+            {/* Indicators plus petits et élégants */}
+            <div className="flex justify-center mt-4 gap-2">
+              {featuredDishes.map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => setCurrentIndex(index)}
-                  className={`w-2 h-2 rounded-full transition-colors ${
-                    index === currentIndex ? 'bg-white' : 'bg-white/50'
+                  onClick={() => {
+                    setIsTransitioning(true);
+                    setCurrentSlide(index);
+                    setTimeout(() => setIsTransitioning(false), 500);
+                  }}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    currentSlide === index ? 'bg-[#C4B5A2] w-6' : 'bg-gray-600 w-1.5 hover:bg-gray-400'
                   }`}
+                  aria-label={`Aller au plat ${index + 1}`}
                 />
               ))}
             </div>
           </div>
-        )}
-
-        <div className="p-6">
-          <div className="flex justify-between items-start mb-2">
-            <h3 className="text-xl font-semibold flex-1 pr-4">
-              {currentItem.name}
-            </h3>
-            <span className="text-lg font-bold text-[#C4B5A2] whitespace-nowrap">
-              {Number(currentItem.price).toFixed(2).replace('.', ',')} €
-            </span>
-          </div>
-          <p className="text-gray-400">
-            {currentItem.description}
-          </p>
-          
-          {user?.role === 'admin' && (
-            <div className="flex gap-2 mt-4 pt-4 border-t border-gray-700">
-              <button
-                onClick={() => handleEditItem(currentItem)}
-                className="flex items-center gap-2 bg-blue-600 px-4 py-2 rounded hover:bg-blue-700"
-              >
-                <Pencil size={20} />
-                Modifier
-              </button>
-              <button
-                onClick={() => handleDeleteItem(currentItem.id)}
-                className="flex items-center gap-2 bg-red-600 px-4 py-2 rounded hover:bg-red-700"
-              >
-                <Trash2 size={20} />
-                Supprimer
-              </button>
-            </div>
-          )}
         </div>
       </div>
-    );
-  };
 
-  const renderDesktopView = () => {
-    if (!menuItems[activeCategory] || menuItems[activeCategory].length === 0) {
-      return (
-        <div className="bg-[#2a2a2a] rounded-xl p-8 text-center">
-          <p>Aucun plat disponible dans cette catégorie.</p>
-        </div>
-      );
-    }
-    
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {menuItems[activeCategory].map((item, index) => (
-          <div
-            key={index}
-            className="bg-[#2a2a2a] rounded-xl shadow-lg overflow-hidden border border-[#C4B5A2]"
-          >
-            {hasImage(item.imagePath) && (
-              <div className="relative h-48 overflow-hidden">
-                <div className="absolute inset-0 bg-black/30 z-10" />
-                <Image
-                  src={getImageUrl(item.imagePath)}
-                  alt={item.name}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                />
-              </div>
-            )}
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-xl font-semibold flex-1 pr-4">{item.name}</h3>
-                <span className="text-lg font-bold text-[#C4B5A2] whitespace-nowrap">{Number(item.price).toFixed(2).replace('.', ',')} €</span>
-              </div>
-              <p className="text-gray-400">{item.description}</p>
-              
-              {user?.role === 'admin' && (
-                <div className="flex gap-2 mt-4 pt-4 border-t border-gray-700">
-                  <button
-                    onClick={() => handleEditItem(item)}
-                    className="flex items-center gap-2 bg-blue-600 px-4 py-2 rounded hover:bg-blue-700"
-                  >
-                    <Pencil size={20} />
-                    Modifier
-                  </button>
-                  <button
-                    onClick={() => handleDeleteItem(item.id)}
-                    className="flex items-center gap-2 bg-red-600 px-4 py-2 rounded hover:bg-red-700"
-                  >
-                    <Trash2 size={20} />
-                    Supprimer
-                  </button>
-                </div>
-              )}
+      {user?.role === 'admin' && (
+        <div className="mt-16 max-w-md mx-auto">
+          <div className="bg-[#1a1a1a] rounded-lg p-6">
+            <h3 className="text-lg font-medium mb-4">Administration</h3>
+            <div className="relative border border-dashed border-gray-700 rounded p-6 text-center">
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={handleUploadNewPdf}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+              <FileText size={24} className="mx-auto text-gray-500 mb-2" />
+              <p className="text-gray-500 text-sm">Mettre à jour le menu (PDF)</p>
             </div>
           </div>
-        ))}
-      </div>
-    );
-  };
-
-  return (
-    <section>
-      <div className="text-center mb-10">
-        <h2 className="text-4xl font-didot-bold mb-4">Notre Carte</h2>
-        <div className="w-24 h-1 bg-[#C4B5A2] mx-auto mb-8"></div>
-        <p className="text-gray-400">Découvrez notre sélection de plats exotiques</p>
-      </div>
-
-      <div className="flex justify-center mb-12 overflow-x-auto">
-        <div className="inline-flex rounded-lg border border-[#C4B5A2] bg-[#2a2a2a] p-1">
-          {categories.map((category) => (
-            <button
-              key={category.id}
-              onClick={() => {
-                setActiveCategory(category.id);
-                setCurrentIndex(0);
-              }}
-              className={`px-6 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
-                activeCategory === category.id
-                  ? 'bg-[#C4B5A2] text-white'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              {category.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {user?.role === 'admin' && !isAddingItem && !isEditing && (
-        <div className="mb-8 flex justify-center">
-          <button
-            onClick={() => setIsAddingItem(true)}
-            className="flex items-center gap-2 bg-[#C4B5A2] text-black px-4 py-2 rounded-md hover:bg-[#a39482]"
-          >
-            <Plus size={20} />
-            Ajouter un plat
-          </button>
         </div>
       )}
-
-      {(isAddingItem || isEditing) && renderForm()}
-
-      {isMobile ? renderMobileView() : renderDesktopView()}
     </section>
   );
 }

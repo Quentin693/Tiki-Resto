@@ -123,7 +123,7 @@ export default function SpacesSection() {
     {
       number: "05",
       title: "Le Coin Pétanque",
-      description: "Quoi de mieux qu'un petit apéro, d'un coucher de soleil et d'un match de pétanque ?",
+      description: "Quoi de mieux qu'un petit apéro, d'un coucher de soleil et d'une partie de pétanque ?",
       imagePath: "/images/petanque.jpg",
       imageAlt: "Espace pétanque en bord de mer pour les soirées"
     }
