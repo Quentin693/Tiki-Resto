@@ -12,7 +12,7 @@ async function bootstrap() {
   
   // Configuration CORS
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: ['https://tikilyon.fr', 'http://tikilyon.fr', 'http://www.tikilyon.fr', 'https://www.tikilyon.fr'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
     allowedHeaders: 'Content-Type, Accept, Authorization',
