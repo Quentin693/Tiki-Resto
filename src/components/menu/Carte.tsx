@@ -50,7 +50,7 @@ const featuredDishes = [
 export default function Carte() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
-  const [pdfUrl, setPdfUrl] = useState('/menus/carte.pdf'); // Chemin par défaut vers votre PDF statique
+  const [pdfUrl, setPdfUrl] = useState('/menus/carteete.pdf'); // Chemin par défaut vers votre PDF statique
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
