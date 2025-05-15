@@ -28,12 +28,30 @@ let UploadsController = class UploadsController {
         const imagePath = `/uploads/images/${file.filename}`;
         return { imagePath };
     }
+    uploadPdf(file) {
+        if (!file) {
+            throw new Error('Aucun fichier n\'a été téléchargé');
+        }
+        const fileUrl = `/uploads/pdfs/${file.filename}`;
+        return { fileUrl };
+    }
     getImage(filename, res) {
         const imagePath = path.join(process.cwd(), 'uploads/images', filename);
         if (!fs.existsSync(imagePath)) {
             return res.status(404).json({ message: 'Image non trouvée' });
         }
         return res.sendFile(imagePath);
+    }
+    getPdf(filename, res) {
+        const pdfPath = path.join(process.cwd(), 'uploads/pdfs', filename);
+        if (!fs.existsSync(pdfPath)) {
+            return res.status(404).json({ message: 'PDF non trouvé' });
+        }
+        res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `inline; filename="${filename}"`,
+        });
+        return res.sendFile(pdfPath);
     }
 };
 exports.UploadsController = UploadsController;
@@ -75,6 +93,46 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], UploadsController.prototype, "uploadImage", null);
 __decorate([
+    (0, common_1.Post)('pdf'),
+    (0, swagger_1.ApiConsumes)('multipart/form-data'),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            properties: {
+                file: {
+                    type: 'string',
+                    format: 'binary',
+                },
+            },
+        },
+    }),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', {
+        storage: (0, multer_1.diskStorage)({
+            destination: './uploads/pdfs',
+            filename: (req, file, cb) => {
+                const randomName = Array(32)
+                    .fill(null)
+                    .map(() => Math.round(Math.random() * 16).toString(16))
+                    .join('');
+                return cb(null, `${randomName}${(0, path_1.extname)(file.originalname)}`);
+            },
+        }),
+        fileFilter: (req, file, cb) => {
+            if (!file.originalname.match(/\.(pdf)$/)) {
+                return cb(new Error('Seuls les fichiers PDF sont autorisés!'), false);
+            }
+            cb(null, true);
+        },
+        limits: {
+            fileSize: 10 * 1024 * 1024,
+        },
+    })),
+    __param(0, (0, common_1.UploadedFile)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], UploadsController.prototype, "uploadPdf", null);
+__decorate([
     (0, common_1.Get)('images/:filename'),
     __param(0, (0, common_1.Param)('filename')),
     __param(1, (0, common_1.Res)()),
@@ -82,6 +140,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], UploadsController.prototype, "getImage", null);
+__decorate([
+    (0, common_1.Get)('pdfs/:filename'),
+    __param(0, (0, common_1.Param)('filename')),
+    __param(1, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], UploadsController.prototype, "getPdf", null);
 exports.UploadsController = UploadsController = __decorate([
     (0, swagger_1.ApiTags)('uploads'),
     (0, common_1.Controller)('uploads')

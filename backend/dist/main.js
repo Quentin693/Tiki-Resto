@@ -16,6 +16,7 @@ async function bootstrap() {
         allowedHeaders: 'Content-Type, Accept, Authorization',
     });
     app.use('/uploads/images', express.static((0, path_1.join)(__dirname, '..', 'uploads/images')));
+    app.use('/uploads/pdfs', express.static((0, path_1.join)(__dirname, '..', 'uploads/pdfs')));
     app.useGlobalPipes(new common_1.ValidationPipe({
         whitelist: true,
         transform: true,

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, createRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Pencil, Edit, Trash2, Plus, X, Check } from 'lucide-react';
+import { Pencil, Edit, Trash2, Plus, X, Check, FileText, Upload } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -13,12 +13,16 @@ interface Menu {
   items: string[];
   info?: string;
   highlight: boolean;
+  pdfUrl?: string;
 }
 
 export default function Menu() {
   const { user, token } = useAuth();
   const [specialMenus, setSpecialMenus] = useState<Menu[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
 
   const [editingMenu, setEditingMenu] = useState<number | null>(null);
   const [isAddingMenu, setIsAddingMenu] = useState(false);
@@ -27,7 +31,8 @@ export default function Menu() {
     price: "",
     items: [""],
     info: "",
-    highlight: false
+    highlight: false,
+    pdfUrl: ""
   });
 
   // Chargement des données au chargement du composant
@@ -58,7 +63,8 @@ export default function Menu() {
       price: menuToEdit.price,
       items: [...menuToEdit.items],
       info: menuToEdit.info || "",
-      highlight: menuToEdit.highlight
+      highlight: menuToEdit.highlight,
+      pdfUrl: menuToEdit.pdfUrl || ""
     });
   };
 
@@ -127,7 +133,8 @@ export default function Menu() {
         price: "",
         items: [""],
         info: "",
-        highlight: false
+        highlight: false,
+        pdfUrl: ""
       });
       toast.success('Menu ajouté avec succès');
     } catch (error) {
@@ -148,6 +155,71 @@ export default function Menu() {
       ...newMenu,
       items: newMenu.items.filter((_, idx) => idx !== index)
     });
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, isEdit: boolean = false) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      console.log('Aucun fichier sélectionné');
+      return;
+    }
+    
+    console.log('Fichier sélectionné:', file.name, 'Type:', file.type);
+    
+    // Vérifiez que c'est un PDF
+    if (file.type !== 'application/pdf') {
+      toast.error('Veuillez sélectionner un fichier PDF');
+      return;
+    }
+    
+    try {
+      setUploadingPdf(true);
+      toast.loading('Téléchargement du PDF en cours...');
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      console.log('Envoi de la requête au serveur...');
+      
+      // Utiliser le nouvel endpoint pour les PDFs
+      console.log('API URL:', `${API_URL}/uploads/pdf`);
+      
+      const response = await fetch(`${API_URL}/uploads/pdf`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      
+      console.log('Réponse du serveur:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Erreur serveur:', errorText);
+        throw new Error(`Erreur lors du téléchargement du PDF (${response.status}): ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log('Données reçues:', data);
+      
+      // Mettre à jour l'URL du PDF dans le state
+      setNewMenu({
+        ...newMenu,
+        pdfUrl: data.fileUrl
+      });
+      
+      toast.dismiss();
+      toast.success('PDF téléchargé avec succès');
+    } catch (error) {
+      console.error('Erreur lors du téléchargement du PDF:', error);
+      toast.dismiss();
+      toast.error(`Erreur: ${error instanceof Error ? error.message : 'Téléchargement échoué'}`);
+    } finally {
+      setUploadingPdf(false);
+      // Réinitialiser l'input pour permettre de sélectionner à nouveau le même fichier
+      event.target.value = '';
+    }
   };
 
   // Afficher un indicateur de chargement
@@ -227,6 +299,50 @@ export default function Menu() {
             value={newMenu.info}
             onChange={(e) => setNewMenu({ ...newMenu, info: e.target.value })}
           />
+          <div className="mb-4">
+            <label className="block text-gray-300 mb-2">Menu PDF (optionnel)</label>
+            <div className="flex flex-col gap-2">
+              <input
+                type="file"
+                accept="application/pdf"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={(e) => handleFileUpload(e, false)}
+              />
+              <div className="flex gap-2 items-center">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingPdf}
+                  className="flex items-center gap-2 bg-gray-700 px-4 py-2 rounded hover:bg-gray-600 disabled:opacity-50"
+                >
+                  <Upload size={16} />
+                  {uploadingPdf ? 'Téléchargement...' : 'Télécharger un PDF'}
+                </button>
+                {newMenu.pdfUrl && (
+                  <>
+                    <span className="text-green-500 text-sm">PDF téléchargé</span>
+                    {newMenu.pdfUrl && (
+                      <a 
+                        href={newMenu.pdfUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:text-blue-300 text-sm ml-2"
+                      >
+                        Aperçu
+                      </a>
+                    )}
+                  </>
+                )}
+              </div>
+              <input
+                className="w-full p-2 bg-gray-800 rounded"
+                placeholder="Ou URL du menu PDF externe"
+                value={newMenu.pdfUrl || ""}
+                onChange={(e) => setNewMenu({ ...newMenu, pdfUrl: e.target.value })}
+              />
+            </div>
+          </div>
           <div className="mb-4 flex items-center gap-2">
             <input
               type="checkbox"
@@ -316,6 +432,50 @@ export default function Menu() {
                   value={newMenu.info}
                   onChange={(e) => setNewMenu({ ...newMenu, info: e.target.value })}
                 />
+                <div className="mb-4">
+                  <label className="block text-gray-300 mb-2">Menu PDF (optionnel)</label>
+                  <div className="flex flex-col gap-2">
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      ref={editFileInputRef}
+                      className="hidden"
+                      onChange={(e) => handleFileUpload(e, true)}
+                    />
+                    <div className="flex gap-2 items-center">
+                      <button
+                        type="button"
+                        onClick={() => editFileInputRef.current?.click()}
+                        disabled={uploadingPdf}
+                        className="flex items-center gap-2 bg-gray-700 px-4 py-2 rounded hover:bg-gray-600 disabled:opacity-50"
+                      >
+                        <Upload size={16} />
+                        {uploadingPdf ? 'Téléchargement...' : 'Télécharger un PDF'}
+                      </button>
+                      {newMenu.pdfUrl && (
+                        <>
+                          <span className="text-green-500 text-sm">PDF disponible</span>
+                          {newMenu.pdfUrl && (
+                            <a 
+                              href={newMenu.pdfUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-400 hover:text-blue-300 text-sm ml-2"
+                            >
+                              Aperçu
+                            </a>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    <input
+                      className="w-full p-2 bg-gray-800 rounded"
+                      placeholder="Ou URL du menu PDF externe"
+                      value={newMenu.pdfUrl || ""}
+                      onChange={(e) => setNewMenu({ ...newMenu, pdfUrl: e.target.value })}
+                    />
+                  </div>
+                </div>
                 <div className="mb-4 flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -354,6 +514,17 @@ export default function Menu() {
                 </ul>
                 {menu.info && (
                   <p className="text-sm text-gray-400 italic mb-4">{menu.info}</p>
+                )}
+                {menu.pdfUrl && (
+                  <a 
+                    href={menu.pdfUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 bg-[#C4B5A2] text-black px-3 py-2 rounded-md hover:bg-[#a39482] inline-block mb-4"
+                  >
+                    <FileText size={16} />
+                    Consulter le menu en PDF
+                  </a>
                 )}
 
                 {user?.role === 'admin' && (

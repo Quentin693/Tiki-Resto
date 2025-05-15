@@ -19,6 +19,7 @@ let Menu = class Menu {
     items;
     info;
     highlight;
+    pdfUrl;
 };
 exports.Menu = Menu;
 __decorate([
@@ -48,9 +49,10 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Liste des plats inclus dans le menu',
-        example: ['Entrée au choix', 'Grenouilles à volonté', 'Dessert au choix']
+        example: ['Entrée au choix', 'Grenouilles à volonté', 'Dessert au choix'],
+        required: false
     }),
-    (0, typeorm_1.Column)('simple-array'),
+    (0, typeorm_1.Column)('simple-array', { nullable: true, default: [] }),
     __metadata("design:type", Array)
 ], Menu.prototype, "items", void 0);
 __decorate([
@@ -71,6 +73,15 @@ __decorate([
     (0, typeorm_1.Column)({ default: false }),
     __metadata("design:type", Boolean)
 ], Menu.prototype, "highlight", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'URL du menu en format PDF (optionnel)',
+        example: '/uploads/pdfs/1234abcd.pdf',
+        required: false
+    }),
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Menu.prototype, "pdfUrl", void 0);
 exports.Menu = Menu = __decorate([
     (0, typeorm_1.Entity)('menus')
 ], Menu);

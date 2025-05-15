@@ -2,8 +2,8 @@ services:
   - type: web
     name: tiki-resto-backend
     env: node
-    buildCommand: npm install && npm run build
-    startCommand: node --max-old-space-size=512 dist/main.js
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: cd backend && node --max-old-space-size=512 dist/main.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -20,5 +20,9 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        value: https://tikilyon.vercel.app
+        value: https://tikilyon.fr
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 10000
     autoDeploy: true 

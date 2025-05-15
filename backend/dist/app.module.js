@@ -44,6 +44,9 @@ exports.AppModule = AppModule = __decorate([
                     database: configService.get('DB_NAME', 'tiki_resto'),
                     entities: [__dirname + '/**/*.entity{.ts,.js}'],
                     synchronize: configService.get('NODE_ENV') !== 'production',
+                    ssl: {
+                        rejectUnauthorized: false,
+                    },
                 }),
             }),
             auth_module_1.AuthModule,

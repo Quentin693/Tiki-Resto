@@ -12,7 +12,7 @@ async function bootstrap() {
   
   // Configuration CORS
   app.enableCors({
-    origin: ['https://tikilyon.fr', 'http://tikilyon.fr', 'https://www.tikilyon.fr'],
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
     allowedHeaders: 'Content-Type, Accept, Authorization',
@@ -20,6 +20,9 @@ async function bootstrap() {
   
   // Servir les images uploadées
   app.use('/uploads/images', express.static(join(__dirname, '..', 'uploads/images')));
+  
+  // Servir les PDFs uploadés
+  app.use('/uploads/pdfs', express.static(join(__dirname, '..', 'uploads/pdfs')));
   
   // Validation des données avec affichage détaillé des erreurs
   app.useGlobalPipes(new ValidationPipe({
@@ -56,7 +59,7 @@ async function bootstrap() {
   const port = configService.get('PORT') || 3001;
   const host = configService.get('HOST') || 'localhost';
 
-  await app.listen(port, '0.0.0.0');
+  await app.listen(port, host);
    (`Application is running on: http://${host}:${port}`);
    (`Swagger documentation: http://${host}:${port}/api`);
 }

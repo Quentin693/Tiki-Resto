@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsArray, IsOptional, IsBoolean } from 'class-validator';
+import { IsNotEmpty, IsString, IsArray, IsOptional, IsBoolean, IsUrl } from 'class-validator';
 
 export class CreateMenuDto {
   @ApiProperty({
@@ -20,11 +20,12 @@ export class CreateMenuDto {
 
   @ApiProperty({
     description: 'Liste des plats inclus dans le menu',
-    example: ['Entrée au choix', 'Grenouilles à volonté', 'Dessert au choix']
+    example: ['Entrée au choix', 'Grenouilles à volonté', 'Dessert au choix'],
+    required: false
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsArray()
-  items: string[];
+  items?: string[];
 
   @ApiProperty({
     description: 'Informations supplémentaires (ex: horaires, contraintes)',
@@ -44,4 +45,13 @@ export class CreateMenuDto {
   @IsOptional()
   @IsBoolean()
   highlight?: boolean;
+
+  @ApiProperty({
+    description: 'URL du menu en format PDF (optionnel)',
+    example: '/uploads/pdfs/1234abcd.pdf',
+    required: false
+  })
+  @IsOptional()
+  @IsString()
+  pdfUrl?: string;
 } 

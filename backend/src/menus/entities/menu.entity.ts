@@ -26,9 +26,10 @@ export class Menu {
 
   @ApiProperty({
     description: 'Liste des plats inclus dans le menu',
-    example: ['Entrée au choix', 'Grenouilles à volonté', 'Dessert au choix']
+    example: ['Entrée au choix', 'Grenouilles à volonté', 'Dessert au choix'],
+    required: false
   })
-  @Column('simple-array')
+  @Column('simple-array', { nullable: true, default: [] })
   items: string[];
 
   @ApiProperty({
@@ -46,4 +47,12 @@ export class Menu {
   })
   @Column({ default: false })
   highlight: boolean;
+
+  @ApiProperty({
+    description: 'URL du menu en format PDF (optionnel)',
+    example: '/uploads/pdfs/1234abcd.pdf',
+    required: false
+  })
+  @Column({ nullable: true })
+  pdfUrl: string;
 } 

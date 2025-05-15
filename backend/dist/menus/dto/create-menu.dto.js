@@ -18,6 +18,7 @@ class CreateMenuDto {
     items;
     info;
     highlight;
+    pdfUrl;
 }
 exports.CreateMenuDto = CreateMenuDto;
 __decorate([
@@ -41,9 +42,10 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Liste des plats inclus dans le menu',
-        example: ['Entrée au choix', 'Grenouilles à volonté', 'Dessert au choix']
+        example: ['Entrée au choix', 'Grenouilles à volonté', 'Dessert au choix'],
+        required: false
     }),
-    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),
     __metadata("design:type", Array)
 ], CreateMenuDto.prototype, "items", void 0);
@@ -68,4 +70,14 @@ __decorate([
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], CreateMenuDto.prototype, "highlight", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'URL du menu en format PDF (optionnel)',
+        example: '/uploads/pdfs/1234abcd.pdf',
+        required: false
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateMenuDto.prototype, "pdfUrl", void 0);
 //# sourceMappingURL=create-menu.dto.js.map
