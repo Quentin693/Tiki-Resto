@@ -203,10 +203,13 @@ export default function Menu() {
       const data = await response.json();
       console.log('Données reçues:', data);
       
+      // Utiliser l'URL complète du PDF (fullFileUrl) si disponible, sinon utiliser l'URL relative (fileUrl)
+      const pdfUrl = data.fullFileUrl || data.fileUrl;
+      
       // Mettre à jour l'URL du PDF dans le state
       setNewMenu({
         ...newMenu,
-        pdfUrl: data.fileUrl
+        pdfUrl: pdfUrl
       });
       
       toast.dismiss();
@@ -521,6 +524,18 @@ export default function Menu() {
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 bg-[#C4B5A2] text-black px-3 py-2 rounded-md hover:bg-[#a39482] inline-block mb-4"
+                    onClick={(e) => {
+                      // Ajouter une vérification et un log pour diagnostiquer les problèmes
+                      console.log("Ouverture du PDF:", menu.pdfUrl);
+                      
+                      // Vérifier que pdfUrl existe et n'est pas undefined
+                      if (menu.pdfUrl && !menu.pdfUrl.startsWith('http')) {
+                        e.preventDefault();
+                        const fullUrl = `${API_URL}${menu.pdfUrl}`;
+                        console.log("Conversion vers URL complète:", fullUrl);
+                        window.open(fullUrl, '_blank');
+                      }
+                    }}
                   >
                     <FileText size={16} />
                     Consulter le menu en PDF

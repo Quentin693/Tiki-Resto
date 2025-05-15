@@ -6,8 +6,29 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import * as express from 'express';
 import { ConfigService } from '@nestjs/config';
+import * as fs from 'fs';
 
 async function bootstrap() {
+  // Créer les dossiers d'upload s'ils n'existent pas
+  const uploadsDir = join(__dirname, '..', 'uploads');
+  const imagesDir = join(uploadsDir, 'images');
+  const pdfsDir = join(uploadsDir, 'pdfs');
+  
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log('Dossier uploads créé');
+  }
+  
+  if (!fs.existsSync(imagesDir)) {
+    fs.mkdirSync(imagesDir, { recursive: true });
+    console.log('Dossier uploads/images créé');
+  }
+  
+  if (!fs.existsSync(pdfsDir)) {
+    fs.mkdirSync(pdfsDir, { recursive: true });
+    console.log('Dossier uploads/pdfs créé');
+  }
+  
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   
   // Configuration CORS

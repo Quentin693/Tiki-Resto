@@ -7,7 +7,23 @@ const swagger_1 = require("@nestjs/swagger");
 const path_1 = require("path");
 const express = require("express");
 const config_1 = require("@nestjs/config");
+const fs = require("fs");
 async function bootstrap() {
+    const uploadsDir = (0, path_1.join)(__dirname, '..', 'uploads');
+    const imagesDir = (0, path_1.join)(uploadsDir, 'images');
+    const pdfsDir = (0, path_1.join)(uploadsDir, 'pdfs');
+    if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+        console.log('Dossier uploads créé');
+    }
+    if (!fs.existsSync(imagesDir)) {
+        fs.mkdirSync(imagesDir, { recursive: true });
+        console.log('Dossier uploads/images créé');
+    }
+    if (!fs.existsSync(pdfsDir)) {
+        fs.mkdirSync(pdfsDir, { recursive: true });
+        console.log('Dossier uploads/pdfs créé');
+    }
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     app.enableCors({
         origin: process.env.FRONTEND_URL || 'http://localhost:3000',

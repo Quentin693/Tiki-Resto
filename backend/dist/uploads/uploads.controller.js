@@ -28,12 +28,38 @@ let UploadsController = class UploadsController {
         const imagePath = `/uploads/images/${file.filename}`;
         return { imagePath };
     }
-    uploadPdf(file) {
+    uploadPdf(file, res) {
         if (!file) {
-            throw new Error('Aucun fichier n\'a été téléchargé');
+            return res.status(400).json({ message: 'Aucun fichier n\'a été téléchargé' });
         }
-        const fileUrl = `/uploads/pdfs/${file.filename}`;
-        return { fileUrl };
+        try {
+            console.log('Fichier PDF téléchargé:', file);
+            const pdfDir = path.join(process.cwd(), 'uploads/pdfs');
+            if (!fs.existsSync(pdfDir)) {
+                fs.mkdirSync(pdfDir, { recursive: true });
+                console.log(`Dossier créé: ${pdfDir}`);
+            }
+            const pdfPath = path.join(pdfDir, file.filename);
+            if (!fs.existsSync(pdfPath)) {
+                console.error(`Le fichier n'a pas été correctement créé: ${pdfPath}`);
+                return res.status(500).json({ message: 'Erreur lors de la création du fichier' });
+            }
+            const relativeFileUrl = `/uploads/pdfs/${file.filename}`;
+            const baseUrl = process.env.BASE_URL || 'http://localhost:3001';
+            const fullFileUrl = `${baseUrl}${relativeFileUrl}`;
+            console.log(`URL du PDF: ${fullFileUrl}`);
+            return res.status(201).json({
+                fileUrl: relativeFileUrl,
+                fullFileUrl: fullFileUrl
+            });
+        }
+        catch (error) {
+            console.error('Erreur lors du téléchargement du PDF:', error);
+            return res.status(500).json({
+                message: 'Erreur lors du téléchargement du PDF',
+                error: error.message
+            });
+        }
     }
     getImage(filename, res) {
         const imagePath = path.join(process.cwd(), 'uploads/images', filename);
@@ -43,15 +69,33 @@ let UploadsController = class UploadsController {
         return res.sendFile(imagePath);
     }
     getPdf(filename, res) {
+        console.log(`Tentative d'accès au PDF: ${filename}`);
         const pdfPath = path.join(process.cwd(), 'uploads/pdfs', filename);
-        if (!fs.existsSync(pdfPath)) {
-            return res.status(404).json({ message: 'PDF non trouvé' });
+        console.log(`Chemin complet du PDF: ${pdfPath}`);
+        try {
+            if (!fs.existsSync(pdfPath)) {
+                console.error(`PDF non trouvé: ${pdfPath}`);
+                return res.status(404).json({ message: 'PDF non trouvé' });
+            }
+            const stats = fs.statSync(pdfPath);
+            console.log(`Permissions du fichier: ${stats.mode.toString(8)}`);
+            console.log(`Taille du fichier: ${stats.size} octets`);
+            res.set({
+                'Content-Type': 'application/pdf',
+                'Content-Disposition': `inline; filename="${filename}"`,
+            });
+            console.log('Envoi du fichier PDF...');
+            return res.sendFile(pdfPath);
         }
-        res.set({
-            'Content-Type': 'application/pdf',
-            'Content-Disposition': `inline; filename="${filename}"`,
-        });
-        return res.sendFile(pdfPath);
+        catch (error) {
+            console.error(`Erreur lors de l'accès au PDF: ${error.message}`);
+            console.error(error.stack);
+            return res.status(500).json({
+                message: 'Erreur lors de l\'accès au PDF',
+                error: error.message,
+                path: pdfPath
+            });
+        }
     }
 };
 exports.UploadsController = UploadsController;
@@ -128,8 +172,9 @@ __decorate([
         },
     })),
     __param(0, (0, common_1.UploadedFile)()),
+    __param(1, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], UploadsController.prototype, "uploadPdf", null);
 __decorate([

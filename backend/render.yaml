@@ -10,6 +10,8 @@ services:
         value: production
       - key: PORT
         value: 3001
+      - key: BASE_URL
+        value: https://tiki-resto-api.onrender.com
       - key: DB_HOST
         sync: false
       - key: DB_PORT
