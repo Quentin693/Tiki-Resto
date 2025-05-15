@@ -9,9 +9,12 @@ import ReservationList from '@/components/calendar/ReservationList';
 import ReservationForm from '@/components/calendar/ReservationForm';
 import ExportPhoneButton from '@/components/calendar/ExportPhoneButton';
 import { Reservation, ReservationFormData, TimeSlot, ReservationForAdmin } from '@/types/reservation';
-import { Calendar as CalendarIcon, CalendarPlus, Users } from 'lucide-react';
+import { Calendar as CalendarIcon, CalendarPlus, Users, Package } from 'lucide-react';
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import SeafoodOrdersList from '@/components/calendar/SeafoodOrdersList';
+import SeafoodOrderForm from '@/components/calendar/SeafoodOrderForm';
+import EventList from '@/components/calendar/EventList';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -57,6 +60,22 @@ interface SeafoodOrder {
   updatedAt: string;
 }
 
+// Interface pour les plateaux de fruits de mer
+interface Plateau {
+  id: string | number;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+// Interface pour les articles individuels de fruits de mer
+interface Item {
+  id: string | number;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [reservations, setReservations] = useState<ReservationForAdmin[]>([]);
@@ -89,6 +108,24 @@ export default function CalendarPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState({ type: '', text: '' });
   const [seafoodOrders, setSeafoodOrders] = useState<SeafoodOrder[]>([]);
+  const [showSeafoodOrderForm, setShowSeafoodOrderForm] = useState(false);
+  const [editingSeafoodOrder, setEditingSeafoodOrder] = useState<SeafoodOrder | null>(null);
+  const [isDeletingSeafoodOrder, setIsDeletingSeafoodOrder] = useState(false);
+  const [isSubmittingSeafoodOrder, setIsSubmittingSeafoodOrder] = useState(false);
+  const [availablePlateaux, setAvailablePlateaux] = useState<Plateau[]>([
+    { id: 1, name: 'Plateau Royal', price: 85.0, quantity: 0 },
+    { id: 2, name: 'Plateau Prestige', price: 65.0, quantity: 0 },
+    { id: 3, name: 'Plateau Découverte', price: 45.0, quantity: 0 },
+    { id: 4, name: 'Plateau Dégustation', price: 35.0, quantity: 0 }
+  ]);
+  const [availableItems, setAvailableItems] = useState<Item[]>([
+    { id: 1, name: 'Huîtres (6 pièces)', price: 12.0, quantity: 0 },
+    { id: 2, name: 'Crevettes (200g)', price: 8.0, quantity: 0 },
+    { id: 3, name: 'Bulots (200g)', price: 6.0, quantity: 0 },
+    { id: 4, name: 'Langoustines (4 pièces)', price: 14.0, quantity: 0 },
+    { id: 5, name: 'Tourteau entier', price: 18.0, quantity: 0 },
+    { id: 6, name: 'Homard (prix au kg)', price: 45.0, quantity: 0 }
+  ]);
 
   useEffect(() => {
     fetchReservations();
@@ -436,46 +473,11 @@ export default function CalendarPage() {
     // Filtrer les commandes de fruits de mer pour cette date
     const daySeafoodOrders = filterSeafoodOrdersByDate(formattedDate, seafoodOrders);
     
-    // Convertir les commandes de fruits de mer en "événements" pour l'affichage
-    const seafoodEvents = daySeafoodOrders.map(order => {
-      // Calculer le nombre total d'articles
-      const totalItems = (order.plateaux?.reduce((sum, item) => sum + item.quantity, 0) || 0) +
-                       (order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0);
-      
-      let description = '';
-      if (order.plateaux && order.plateaux.length > 0) {
-        description += `Plateaux: ${order.plateaux.map(p => `${p.name} (${p.quantity})`).join(', ')}. `;
-      }
-      if (order.items && order.items.length > 0) {
-        description += `Articles: ${order.items.map(i => `${i.name} (${i.quantity})`).join(', ')}`;
-      }
-      
-      // S'assurer que la date de l'événement est au format correct YYYY-MM-DD
-      // IMPORTANT: Toujours utiliser le même format de date que celui attendu par le calendrier
-      const dateObj = new Date(date); // Utiliser directement la date fournie en paramètre
-      const eventDate = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
-      
-      const eventObject = {
-        id: parseInt(order.id),
-        title: `Commande Fruits de Mer (${totalItems} articles)`,
-        description: description,
-        eventDate: eventDate, // Utiliser la date formatée
-        startTime: order.pickupTime,
-        endTime: '',
-        maxGuests: totalItems,
-        type: 'seafood' as const,
-        color: '#FF9370', // Orange saumon
-        customerName: order.customerName,
-        customerEmail: order.customerEmail || '',
-        customerPhone: order.customerPhone,
-        isPickup: order.isPickup
-      };
-      
-      return eventObject;
-    });
+    // Nous ne convertissons plus les commandes de fruits de mer en événements pour l'affichage
+    // Nous les traitons séparément plus bas dans l'interface
     
-    // Combiner toutes les sources
-    const allEvents = [...explicitDayEvents, ...eventReservations, ...seafoodEvents];
+    // Combiner seulement les événements explicites et implicites (sans les fruits de mer)
+    const allEvents = [...explicitDayEvents, ...eventReservations];
     
     setSelectedEvents(allEvents);
   };
@@ -499,46 +501,11 @@ export default function CalendarPage() {
     // Filtrer les commandes de fruits de mer pour cette date
     const daySeafoodOrders = filterSeafoodOrdersByDate(formattedDate, seafoodOrders);
     
-    // Convertir les commandes de fruits de mer en "événements" pour l'affichage
-    const seafoodEvents = daySeafoodOrders.map(order => {
-      // Calculer le nombre total d'articles
-      const totalItems = (order.plateaux?.reduce((sum, item) => sum + item.quantity, 0) || 0) +
-                       (order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0);
-      
-      let description = '';
-      if (order.plateaux && order.plateaux.length > 0) {
-        description += `Plateaux: ${order.plateaux.map(p => `${p.name} (${p.quantity})`).join(', ')}. `;
-      }
-      if (order.items && order.items.length > 0) {
-        description += `Articles: ${order.items.map(i => `${i.name} (${i.quantity})`).join(', ')}`;
-      }
-      
-      // S'assurer que la date de l'événement est au format correct YYYY-MM-DD
-      // IMPORTANT: Toujours utiliser le même format de date que celui attendu par le calendrier
-      const dateObj = new Date(date); // Utiliser directement la date fournie en paramètre
-      const eventDate = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
-      
-      const eventObject = {
-        id: parseInt(order.id),
-        title: `Commande Fruits de Mer (${totalItems} articles)`,
-        description: description,
-        eventDate: eventDate, // Utiliser la date formatée
-        startTime: order.pickupTime,
-        endTime: '',
-        maxGuests: totalItems,
-        type: 'seafood' as const,
-        color: '#FF9370', // Orange saumon
-        customerName: order.customerName,
-        customerEmail: order.customerEmail || '',
-        customerPhone: order.customerPhone,
-        isPickup: order.isPickup
-      };
-      
-      return eventObject;
-    });
+    // Nous ne convertissons plus les commandes de fruits de mer en événements pour l'affichage
+    // Nous les traitons séparément plus bas dans l'interface
     
-    // Combiner toutes les sources
-    const allEvents = [...explicitDayEvents, ...eventReservations, ...seafoodEvents];
+    // Combiner seulement les événements explicites et implicites (sans les fruits de mer)
+    const allEvents = [...explicitDayEvents, ...eventReservations];
     
     setSelectedEvents(allEvents);
   };
@@ -1188,6 +1155,163 @@ export default function CalendarPage() {
     }
   };
 
+  // Ajouter les trois fonctions pour gérer les commandes de fruits de mer
+  const startEditSeafoodOrder = (order: SeafoodOrder) => {
+    setEditingSeafoodOrder(order);
+    setShowSeafoodOrderForm(true);
+    setShowAddForm(false);
+    setShowAddEventForm(false);
+  };
+
+  const deleteSeafoodOrder = async (orderId: string) => {
+    try {
+      setIsDeletingSeafoodOrder(true);
+      
+      // Obtenir le token d'authentification
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        console.error("❌ Pas de token d'authentification");
+        toast.error('Vous devez être connecté pour supprimer une commande');
+        setIsDeletingSeafoodOrder(false);
+        return;
+      }
+      
+      const response = await fetch(`${API_URL}/seafood-orders/${orderId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Réponse API d\'erreur:', errorText);
+        throw new Error(`Erreur lors de la suppression de la commande: ${response.status} ${errorText}`);
+      }
+      
+      // Mettre à jour l'état local
+      setSeafoodOrders(prev => prev.filter(order => order.id !== orderId));
+      toast.success('Commande supprimée avec succès');
+      
+      // Rafraîchir les données
+      fetchSeafoodOrders();
+      
+    } catch (error) {
+      console.error('Erreur:', error);
+      toast.error(`Erreur: ${error instanceof Error ? error.message : 'lors de la suppression'}`);
+    } finally {
+      setIsDeletingSeafoodOrder(false);
+    }
+  };
+
+  const updateSeafoodOrderStatus = async (orderId: string, status: string) => {
+    try {
+      // Obtenir le token d'authentification
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        console.error("❌ Pas de token d'authentification");
+        toast.error('Vous devez être connecté pour mettre à jour une commande');
+        return;
+      }
+      
+      const response = await fetch(`${API_URL}/seafood-orders/${orderId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Réponse API d\'erreur:', errorText);
+        throw new Error(`Erreur lors de la mise à jour du statut: ${response.status} ${errorText}`);
+      }
+      
+      const updatedOrder = await response.json();
+      
+      // Mettre à jour l'état local
+      setSeafoodOrders(prev => 
+        prev.map(order => order.id === orderId ? updatedOrder : order)
+      );
+      
+      toast.success(`Statut mis à jour: ${status}`);
+      
+    } catch (error) {
+      console.error('Erreur:', error);
+      toast.error(`Erreur: ${error instanceof Error ? error.message : 'lors de la mise à jour'}`);
+    }
+  };
+
+  const submitSeafoodOrderForm = async (orderData: SeafoodOrder) => {
+    try {
+      setIsSubmittingSeafoodOrder(true);
+      
+      // Obtenir le token d'authentification
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        console.error("❌ Pas de token d'authentification");
+        toast.error('Vous devez être connecté pour gérer les commandes');
+        setIsSubmittingSeafoodOrder(false);
+        return;
+      }
+      
+      // Déterminer si c'est une création ou une mise à jour
+      const isEditing = !!editingSeafoodOrder;
+      const url = isEditing 
+        ? `${API_URL}/seafood-orders/${orderData.id}` 
+        : `${API_URL}/seafood-orders`;
+      
+      const method = isEditing ? 'PATCH' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(orderData)
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Réponse API d\'erreur:', errorText);
+        throw new Error(`Erreur lors de l'opération: ${response.status} ${errorText}`);
+      }
+      
+      const result = await response.json();
+      
+      // Mettre à jour l'état local
+      if (isEditing) {
+        setSeafoodOrders(prev => 
+          prev.map(order => order.id === result.id ? result : order)
+        );
+        toast.success('Commande mise à jour avec succès');
+      } else {
+        setSeafoodOrders(prev => [...prev, result]);
+        toast.success('Commande créée avec succès');
+      }
+      
+      // Réinitialiser le formulaire
+      setEditingSeafoodOrder(null);
+      setShowSeafoodOrderForm(false);
+      
+      // Rafraîchir les données
+      fetchSeafoodOrders();
+      
+    } catch (error) {
+      console.error('Erreur:', error);
+      toast.error(`Erreur: ${error instanceof Error ? error.message : 'lors de l\'opération'}`);
+    } finally {
+      setIsSubmittingSeafoodOrder(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-white">
       <div className="container mt-40 mx-auto px-4 py-8">
@@ -1227,6 +1351,7 @@ export default function CalendarPage() {
                   onClick={() => {
                     setShowAddForm(!showAddForm);
                     setShowAddEventForm(false);
+                    setShowSeafoodOrderForm(false);
                     setEditingReservation(null);
                     setNewReservation({
                       customerName: '',
@@ -1247,6 +1372,7 @@ export default function CalendarPage() {
                   onClick={() => {
                     setShowAddEventForm(!showAddEventForm);
                     setShowAddForm(false);
+                    setShowSeafoodOrderForm(false);
                     setEditingEvent(null);
                     setNewEvent({
                       customerName: '',
@@ -1262,6 +1388,19 @@ export default function CalendarPage() {
                 >
                   <CalendarPlus className="w-4 h-4" />
                   {showAddEventForm ? 'Annuler' : 'Événement'}
+                </button>
+                
+                <button
+                  onClick={() => {
+                    setShowSeafoodOrderForm(!showSeafoodOrderForm);
+                    setShowAddForm(false);
+                    setShowAddEventForm(false);
+                    setEditingSeafoodOrder(null);
+                  }}
+                  className="px-4 py-2 bg-[#FF9370] text-black rounded-lg font-medium hover:bg-[#FF8060] transition-colors flex items-center gap-2"
+                >
+                  <Package className="w-4 h-4" />
+                  {showSeafoodOrderForm ? 'Annuler' : 'Fruits de mer'}
                 </button>
               </div>
             </div>
@@ -1389,6 +1528,20 @@ export default function CalendarPage() {
               </div>
             )}
 
+            {showSeafoodOrderForm && (
+              <SeafoodOrderForm
+                order={editingSeafoodOrder}
+                onSubmit={submitSeafoodOrderForm}
+                onCancel={() => {
+                  setShowSeafoodOrderForm(false);
+                  setEditingSeafoodOrder(null);
+                }}
+                isSubmitting={isSubmittingSeafoodOrder}
+                availablePlateaux={availablePlateaux}
+                availableItems={availableItems}
+              />
+            )}
+
             {/* Liste des événements du jour */}
             {selectedEvents.length > 0 && (
               <div className="mb-8">
@@ -1462,6 +1615,46 @@ export default function CalendarPage() {
               onTableUpdate={handleTableUpdate}
               isDeleting={isDeleting}
             />
+
+            {/* Section des événements */}
+            <div className="mt-8 pt-6 border-t border-[#333]">
+              <h4 className="text-lg font-medium mb-4 text-[#2196F3] flex items-center">
+                <CalendarPlus className="w-5 h-5 mr-2" />
+                Événements
+              </h4>
+              {selectedEvents.filter(event => event.type !== 'seafood').length > 0 ? (
+                <EventList
+                  events={selectedEvents.filter(event => event.type !== 'seafood')}
+                  onEdit={startEditEvent}
+                  onDelete={deleteEvent}
+                  isDeleting={isDeleting}
+                />
+              ) : (
+                <div className="p-4 bg-[#2a2a2a] rounded-lg border border-[#2196F3]/20 text-center">
+                  <p className="text-gray-400">Aucun événement pour cette date</p>
+                </div>
+              )}
+            </div>
+
+            {/* Section des commandes de fruits de mer */}
+            <div className="mt-8 pt-6 border-t border-[#333]">
+              <h4 className="text-lg font-medium mb-4 text-[#FF9370] flex items-center">
+                <Package className="w-5 h-5 mr-2" />
+                Commandes de fruits de mer
+              </h4>
+              <SeafoodOrdersList
+                orders={seafoodOrders.filter(order => {
+                  // Formater la date sélectionnée au format YYYY-MM-DD pour la comparaison
+                  const formattedSelectedDate = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+                  // Comparer les dates (jour uniquement)
+                  return filterSeafoodOrdersByDate(formattedSelectedDate, [order]).length > 0;
+                })}
+                onEdit={startEditSeafoodOrder}
+                onDelete={deleteSeafoodOrder}
+                onStatusUpdate={updateSeafoodOrderStatus}
+                isDeleting={isDeletingSeafoodOrder}
+              />
+            </div>
           </div>
         )}
       </div>

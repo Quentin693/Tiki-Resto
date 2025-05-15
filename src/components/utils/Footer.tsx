@@ -1,6 +1,6 @@
 "use client"
 
-import { Menu, X, Instagram, Facebook, Clock, MapPin, Phone, Mail } from 'lucide-react';
+import { Menu, X, Instagram, Facebook, Clock, MapPin, Phone, Mail, Heart } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -9,7 +9,7 @@ export default function Footer() {
     const pathname = usePathname();
     
     return (
-        <footer className="bg-[#1a1a1a] border-t border-#C4B5A2 mt-auto w-full">
+        <footer className="bg-[#1a1a1a] border-t border-#C4B5A2 mt-auto w-full z-[-1]">
         <div className="container mx-auto px-4 py-8 sm:py-12">
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
@@ -65,10 +65,10 @@ export default function Footer() {
           </div>
 
           <div className="mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-#C4B5A2">
-            <div className="flex flex-col sm:flex-row justify-between items-center">
-              {/* Liens légaux en tableau 2x2 */}
-              <div className="mb-4 sm:mb-0">
-                <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+            <div className="flex flex-col md:flex-row">
+              {/* Liens légaux à gauche uniquement */}
+              <div className="w-full md:w-1/3">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                   <a 
                     href="/mentions-legales" 
                     className="text-gray-400 hover:text-[#C4B5A2] text-xs sm:text-sm transition-colors duration-300"
@@ -96,23 +96,37 @@ export default function Footer() {
                 </div>
               </div>
 
-              {/* Copyright centré */}
-              <p className="text-gray-400 text-xs sm:text-sm text-center mb-4 sm:mb-0">
-                © {new Date().getFullYear()} Restaurant Tiki Au bord de l'eau. Tous droits réservés.
-              </p>
-
-              {/* Logo à droite */}
-              <div className="flex items-center gap-3">
-                <Link href="/" className="relative w-16 h-16">
-                  <Image
-                    src="/logos/TikiLogo.png"
-                    alt="Tiki Logo"
-                    fill
-                    className="object-contain"
-                  />
-                </Link>
-                <span className="text-[#C4B5A2] font-didot text-2xl">TIKI</span>
+              {/* Partie centrale avec copyright uniquement */}
+              <div className="w-full md:w-1/3 flex flex-col items-center justify-center mt-6 md:mt-0">
+                {/* Copyright centré */}
+                <p className="text-gray-400 text-xs sm:text-sm text-center">
+                  © {new Date().getFullYear()} Restaurant Tiki Au bord de l'eau. Tous droits réservés.
+                </p>
               </div>
+              
+              {/* Logo à droite */}
+              <div className="w-full md:w-1/3 flex justify-end items-center">
+                <div className="flex items-center gap-3">
+                  <Link href="/" className="relative w-16 h-16">
+                    <Image
+                      src="/logos/TikiLogo.png"
+                      alt="Tiki Logo"
+                      fill
+                      className="object-contain"
+                    />
+                  </Link>
+                  <span className="text-[#C4B5A2] font-didot text-2xl">TIKI</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Made with love credit - bien centré */}
+            <div className="flex justify-center items-center mt-6 text-xs text-gray-400">
+              <span className="flex items-center">
+                Made with
+                <Heart className="h-4 w-4 mx-1 text-white inline" fill="white" />
+                by Quentin Cialone, Développeur Web et Responsable au Tiki
+              </span>
             </div>
           </div>
         </div>
