@@ -44,11 +44,10 @@ async function bootstrap() {
     const document = swagger_1.SwaggerModule.createDocument(app, config);
     swagger_1.SwaggerModule.setup('api', app, document);
     const configService = app.get(config_1.ConfigService);
-    const port = configService.get('PORT') || 3001 || "0.0.0.1" || "0.0.0.0";
-    const host = configService.get('HOST') || 'localhost';
-    await app.listen(port, host);
-    (`Application is running on: http://${host}:${port}`);
-    (`Swagger documentation: http://${host}:${port}/api`);
+    const port = configService.get('PORT') || 3001;
+    await app.listen(port, '0.0.0.0');
+    console.log(`Application is running on: http://0.0.0.0:${port}`);
+    console.log(`Swagger documentation: http://0.0.0.0:${port}/api`);
 }
 bootstrap();
 //# sourceMappingURL=main.js.map
