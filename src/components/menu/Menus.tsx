@@ -4,6 +4,8 @@ import { Pencil, Edit, Trash2, Plus, X, Check, FileText, Upload } from 'lucide-r
 import { toast } from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// URL de l'API en production pour les PDFs
+const PROD_API_URL = 'https://tiki-resto-api.onrender.com';
 
 // Définition de l'interface Menu
 interface Menu {
@@ -181,10 +183,14 @@ export default function Menu() {
       
       console.log('Envoi de la requête au serveur...');
       
-      // Utiliser le nouvel endpoint pour les PDFs
-      console.log('API URL:', `${API_URL}/uploads/pdf`);
+      // En développement, utilisez l'API locale, sinon utilisez l'API de production
+      const uploadUrl = process.env.NODE_ENV === 'development' 
+        ? `${API_URL}/uploads/pdf` 
+        : `${PROD_API_URL}/uploads/pdf`;
+        
+      console.log('API URL pour upload:', uploadUrl);
       
-      const response = await fetch(`${API_URL}/uploads/pdf`, {
+      const response = await fetch(uploadUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -204,7 +210,18 @@ export default function Menu() {
       console.log('Données reçues:', data);
       
       // Utiliser l'URL complète du PDF (fullFileUrl) si disponible, sinon utiliser l'URL relative (fileUrl)
-      const pdfUrl = data.fullFileUrl || data.fileUrl;
+      let pdfUrl = data.fullFileUrl || data.fileUrl;
+      
+      // Si l'URL est relative, préfixer avec l'URL de l'API de production
+      if (pdfUrl.startsWith('/')) {
+        pdfUrl = `${PROD_API_URL}${pdfUrl}`;
+        console.log("URL relative convertie vers l'API de production:", pdfUrl);
+      }
+      // Si l'URL contient localhost, la remplacer par l'URL de production
+      else if (pdfUrl.includes('localhost')) {
+        pdfUrl = pdfUrl.replace(/http:\/\/localhost:\d+/, PROD_API_URL);
+        console.log("URL localhost remplacée par l'API de production:", pdfUrl);
+      }
       
       // Mettre à jour l'URL du PDF dans le state
       setNewMenu({
@@ -520,22 +537,31 @@ export default function Menu() {
                 )}
                 {menu.pdfUrl && (
                   <a 
-                    href={menu.pdfUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 bg-[#C4B5A2] text-black px-3 py-2 rounded-md hover:bg-[#a39482] inline-block mb-4"
+                    href="#"
                     onClick={(e) => {
-                      // Ajouter une vérification et un log pour diagnostiquer les problèmes
-                      console.log("Ouverture du PDF:", menu.pdfUrl);
-                      
+                      e.preventDefault();
                       // Vérifier que pdfUrl existe et n'est pas undefined
-                      if (menu.pdfUrl && !menu.pdfUrl.startsWith('http')) {
-                        e.preventDefault();
-                        const fullUrl = `${API_URL}${menu.pdfUrl}`;
-                        console.log("Conversion vers URL complète:", fullUrl);
-                        window.open(fullUrl, '_blank');
+                      if (menu.pdfUrl) {
+                        console.log("Ouverture du PDF:", menu.pdfUrl);
+                        
+                        let pdfUrl = menu.pdfUrl;
+                        
+                        // Si l'URL est relative (commence par /)
+                        if (pdfUrl.startsWith('/')) {
+                          pdfUrl = `${PROD_API_URL}${pdfUrl}`;
+                          console.log("URL convertie vers l'API de production:", pdfUrl);
+                        } 
+                        // Si l'URL contient localhost, la remplacer par l'URL de production
+                        else if (pdfUrl.includes('localhost')) {
+                          pdfUrl = pdfUrl.replace(/http:\/\/localhost:\d+/, PROD_API_URL);
+                          console.log("URL localhost remplacée par l'API de production:", pdfUrl);
+                        }
+                        
+                        // Ouvrir dans un nouvel onglet
+                        window.open(pdfUrl, '_blank');
                       }
                     }}
+                    className="flex items-center gap-2 bg-[#C4B5A2] text-black px-3 py-2 rounded-md hover:bg-[#a39482] inline-block mb-4"
                   >
                     <FileText size={16} />
                     Consulter le menu en PDF
