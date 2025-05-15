@@ -31,6 +31,8 @@ interface ReservationData {
   createdAt: string;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
 export default function ReservationPage() {
   const { user, isAuthenticated } = useAuth();
   // Date actuelle pour le calendrier
@@ -209,7 +211,7 @@ export default function ReservationPage() {
           : `[Réservation groupe: ${numGuests} personnes]`;
       }
 
-      const response = await fetch('http://localhost:3001/reservations', {
+      const response = await fetch(`${API_URL}/reservations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

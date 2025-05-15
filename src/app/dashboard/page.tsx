@@ -10,6 +10,8 @@ import RecentReservations from '@/components/dashboard/RecentReservations';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
 let notificationCounter = 0;
 
 const getLatestReservationNotification = (reservations: Reservation[]): { id: number; type: 'urgent' | 'warning'; message: string; time: string; isRead: boolean; } | null => {
@@ -103,7 +105,7 @@ export default function AdminDashboard() {
 
   const fetchReservations = async () => {
     try {
-      const response = await fetch('http://localhost:3001/reservations');
+      const response = await fetch(`${API_URL}/reservations`);
       if (!response.ok) {
         throw new Error('Erreur lors du chargement des réservations');
       }

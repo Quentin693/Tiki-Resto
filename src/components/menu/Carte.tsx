@@ -12,8 +12,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const featuredDishes = [
   {
     id: 1,
-    name: "Tartare de Boeuf",
-    description: "Tartare de boeuf au couteau, frites fraîches et bouquet de salade",
+    name: "Tartare de bœuf charolais au couteau 180g",
+    description: "Frites fraiches & bouquet de salade",
     image: "/plats/789e4106a9510e5758f1323d62a1bf0392.jpeg", // Assurez-vous que ces images existent dans votre dossier public
     category: "Plats"
   },
@@ -26,22 +26,22 @@ const featuredDishes = [
   },
   {
     id: 3,
-    name: "Tartaki de Boeuf",
-    description: "Risotto de coquillettes, chiffonnade de jambon truffé et oeuf parfait",
+    name: "Tartaki de Boeuf 380g",
+    description: "Tartare de bœuf charolais & tataki de bœuf à l’Italienne, frite fraiches",
     image: "/plats/cccba0db20dfc054e847947d1410686a6.jpeg",
     category: "Plats"
   },
   {
     id: 4,
-    name: "Grenouilles comme en Dombes",
-    description: "Grenouilles en persillade, accompagnées de pommes de terre grenaille",
+    name: "Cuisses de grenouilles comme en Dombes 300g",
+    description: "Pommes de terre grenaille",
     image: "/plats/grenouilles.jpeg",
     category: "Plats"
   },
   {
     id: 5,
     name: "Brioche Perdue Nanterre",
-    description: "Notre brioche perdue fait maison selon l'inspiration du chef",
+    description: "Caramel beurre salé & boule de glace crème brulée",
     image: "/plats/e4a171e7cad3c22b71080b6284b590934.jpeg",
     category: "Desserts"
   }
@@ -50,7 +50,7 @@ const featuredDishes = [
 export default function Carte() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
-  const [pdfUrl, setPdfUrl] = useState('/menus/carteete.pdf'); // Chemin par défaut vers votre PDF statique
+  const [pdfUrl, setPdfUrl] = useState('/carte/carte.pdf'); // Chemin par défaut vers votre PDF statique
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
@@ -190,9 +190,6 @@ export default function Carte() {
               </a>
             </div>
             
-            <p className="text-gray-500 text-xs mt-6">
-              Le fichier s'ouvrira dans un nouvel onglet et est compatible avec tous les appareils
-            </p>
           </div>
         </div>
         

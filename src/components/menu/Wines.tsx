@@ -11,7 +11,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 export default function Wines() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
-  const [pdfUrl, setPdfUrl] = useState('/carte/cartehiver.pdf');
+  const [pdfUrl, setPdfUrl] = useState('/carte/cartevin.pdf');
 
   // Fonction pour normaliser le chemin du PDF en URL absolue
   const getAbsolutePdfUrl = () => {
@@ -155,10 +155,6 @@ export default function Wines() {
                 </span>
               </a>
             </div>
-            
-            <p className="text-gray-500 text-xs mt-6">
-              Le fichier s'ouvrira dans un nouvel onglet et est compatible avec tous les appareils
-            </p>
           </div>
         </div>
       </div>
