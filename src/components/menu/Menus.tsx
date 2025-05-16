@@ -23,6 +23,40 @@ interface Menu {
   imageUrl?: string;
 }
 
+// Composant Modal pour afficher l'image
+function ImageModal({ imageUrl, onClose, menuName }: { imageUrl: string, onClose: () => void, menuName: string }) {
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-[#2a2a2a] rounded-xl p-4 w-full max-w-3xl">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-bold text-[#C4B5A2]">{menuName}</h3>
+          <button 
+            onClick={onClose}
+            className="bg-red-600 hover:bg-red-700 rounded-full p-2 text-white"
+          >
+            <X size={24} />
+          </button>
+        </div>
+        <div className="overflow-auto max-h-[70vh]">
+          <img 
+            src={`${API_URL}${imageUrl}`} 
+            alt={menuName} 
+            className="w-full rounded-md" 
+          />
+        </div>
+        <div className="mt-4 flex justify-end">
+          <button
+            onClick={onClose}
+            className="bg-[#C4B5A2] hover:bg-[#a39482] text-black px-4 py-2 rounded-md"
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Menu() {
   const { user, token } = useAuth();
   const [specialMenus, setSpecialMenus] = useState<Menu[]>([]);
@@ -41,6 +75,9 @@ export default function Menu() {
     highlight: false,
     imageUrl: ""
   });
+
+  // État pour gérer le modal
+  const [viewingImage, setViewingImage] = useState<{url: string, menuName: string} | null>(null);
 
   // Chargement des données au chargement du composant
   useEffect(() => {
@@ -510,8 +547,11 @@ export default function Menu() {
                   <div className="mb-4">
                     <button
                       onClick={() => {
-                        // Ouvrir l'image dans un nouvel onglet
-                        window.open(`${API_URL}${menu.imageUrl}`, '_blank');
+                        // Afficher l'image dans un modal
+                        setViewingImage({
+                          url: menu.imageUrl || '',
+                          menuName: menu.name
+                        });
                       }}
                       className="flex items-center gap-2 bg-[#C4B5A2] text-black px-3 py-2 rounded-md hover:bg-[#a39482] inline-block"
                     >
@@ -544,6 +584,15 @@ export default function Menu() {
           </div>
         ))}
       </div>
+
+      {/* Modal pour afficher l'image */}
+      {viewingImage && (
+        <ImageModal 
+          imageUrl={viewingImage.url} 
+          menuName={viewingImage.menuName}
+          onClose={() => setViewingImage(null)} 
+        />
+      )}
     </section>
   );
 }

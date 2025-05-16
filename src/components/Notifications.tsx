@@ -112,14 +112,24 @@ const Notifications = {
       case 'reservation':
         // Format date for readable display
         const date = new Date(data.date);
-        const formattedDate = date.toLocaleDateString('fr-FR', {
+        
+        // Ajuster explicitement la date au fuseau horaire français (UTC+2)
+        const franceDate = new Date(date.getTime());
+        // Si nécessaire, ajuster manuellement le fuseau horaire
+        // Ceci est préférable à l'utilisation de toLocaleString car cela assure que l'heure est correcte
+        // indépendamment du fuseau horaire du serveur
+        
+        const formattedDate = franceDate.toLocaleDateString('fr-FR', {
           day: 'numeric',
           month: 'long',
-          year: 'numeric'
+          year: 'numeric',
+          timeZone: 'Europe/Paris' // Utiliser le fuseau horaire français
         });
-        const formattedTime = date.toLocaleTimeString('fr-FR', {
+        
+        const formattedTime = franceDate.toLocaleTimeString('fr-FR', {
           hour: '2-digit',
-          minute: '2-digit'
+          minute: '2-digit',
+          timeZone: 'Europe/Paris' // Utiliser le fuseau horaire français
         });
 
         switch (action) {
