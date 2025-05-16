@@ -4,5 +4,5 @@ export declare class CreateMenuDto {
     items?: string[];
     info?: string;
     highlight?: boolean;
-    pdfUrl?: string;
+    imageUrl?: string;
 }

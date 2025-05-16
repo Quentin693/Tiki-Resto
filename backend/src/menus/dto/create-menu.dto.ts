@@ -47,11 +47,11 @@ export class CreateMenuDto {
   highlight?: boolean;
 
   @ApiProperty({
-    description: 'URL du menu en format PDF (optionnel)',
-    example: '/uploads/pdfs/1234abcd.pdf',
+    description: 'URL de l\'image du menu (optionnel)',
+    example: '/uploads/images/1234abcd.jpg',
     required: false
   })
   @IsOptional()
   @IsString()
-  pdfUrl?: string;
+  imageUrl?: string;
 } 

@@ -5,5 +5,5 @@ export declare class Menu {
     items: string[];
     info: string;
     highlight: boolean;
-    pdfUrl: string;
+    imageUrl: string;
 }

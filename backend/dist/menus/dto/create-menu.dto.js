@@ -18,7 +18,7 @@ class CreateMenuDto {
     items;
     info;
     highlight;
-    pdfUrl;
+    imageUrl;
 }
 exports.CreateMenuDto = CreateMenuDto;
 __decorate([
@@ -72,12 +72,12 @@ __decorate([
 ], CreateMenuDto.prototype, "highlight", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: 'URL du menu en format PDF (optionnel)',
-        example: '/uploads/pdfs/1234abcd.pdf',
+        description: 'URL de l\'image du menu (optionnel)',
+        example: '/uploads/images/1234abcd.jpg',
         required: false
     }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], CreateMenuDto.prototype, "pdfUrl", void 0);
+], CreateMenuDto.prototype, "imageUrl", void 0);
 //# sourceMappingURL=create-menu.dto.js.map

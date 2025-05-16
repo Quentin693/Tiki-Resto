@@ -32,22 +32,54 @@ const Notifications = {
   // Send SMS via Twilio
   sendSMS: async (to: string, body: string): Promise<boolean> => {
     try {
+      console.log(`Tentative d'envoi de SMS à ${to}`);
+      
+      // Formater le numéro au format international si nécessaire
+      let formattedPhone = to;
+      
+      // Si le numéro ne commence pas par un +, on suppose que c'est un numéro français
+      if (!to.startsWith('+')) {
+        // Enlever les espaces et tirets
+        formattedPhone = to.replace(/[\s-]/g, '');
+        
+        // Si le numéro commence par un 0, le remplacer par +33
+        if (formattedPhone.startsWith('0')) {
+          formattedPhone = '+33' + formattedPhone.substring(1);
+        } else {
+          // Sinon juste ajouter le +33
+          formattedPhone = '+33' + formattedPhone;
+        }
+      }
+      
+      console.log(`Numéro formaté pour Twilio: ${formattedPhone}`);
+      
       const response = await fetch('/api/send-sms', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ to, message: body }),
+        body: JSON.stringify({ to: formattedPhone, message: body }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to send SMS');
+      const responseText = await response.text();
+      console.log(`Réponse de l'API SMS (status ${response.status}):`, responseText);
+
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Erreur lors du parsing de la réponse JSON:', e);
+        return false;
       }
 
-      const result = await response.json();
+      if (!response.ok) {
+        console.error('Erreur lors de l\'envoi du SMS:', result);
+        return false;
+      }
+
       return result.success;
     } catch (error) {
-      console.error('Error sending SMS:', error);
+      console.error('Exception lors de l\'envoi du SMS:', error);
       return false;
     }
   },

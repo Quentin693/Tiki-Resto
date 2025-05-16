@@ -1,28 +1,33 @@
-import React, { useState, useEffect, useRef, createRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Pencil, Edit, Trash2, Plus, X, Check, FileText, Upload } from 'lucide-react';
+import { Pencil, Edit, Trash2, Plus, X, Check, Image } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-// URL de l'API en production pour les PDFs
+// URL de l'API en production pour les images
 const PROD_API_URL = 'https://tiki-resto-api.onrender.com';
+
+// Fonction de débogage pour journaliser des informations utiles
+const debug = (message: string, data?: any) => {
+  console.log(`[DEBUG] ${message}`, data || '');
+};
 
 // Définition de l'interface Menu
 interface Menu {
   id: number;
   name: string;
   price: string;
-  items: string[];
+  items: string[] | null;
   info?: string;
   highlight: boolean;
-  pdfUrl?: string;
+  imageUrl?: string;
 }
 
 export default function Menu() {
   const { user, token } = useAuth();
   const [specialMenus, setSpecialMenus] = useState<Menu[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -34,7 +39,7 @@ export default function Menu() {
     items: [""],
     info: "",
     highlight: false,
-    pdfUrl: ""
+    imageUrl: ""
   });
 
   // Chargement des données au chargement du composant
@@ -48,6 +53,7 @@ export default function Menu() {
       const response = await fetch(`${API_URL}/menus`);
       if (!response.ok) throw new Error('Failed to load menus');
       const data = await response.json();
+      console.log('Menus chargés depuis l\'API:', data); // Log pour déboguer
       setSpecialMenus(data);
       setIsLoading(false);
     } catch (error) {
@@ -63,10 +69,10 @@ export default function Menu() {
     setNewMenu({
       name: menuToEdit.name,
       price: menuToEdit.price,
-      items: [...menuToEdit.items],
+      items: menuToEdit.items ? [...menuToEdit.items] : [""],
       info: menuToEdit.info || "",
       highlight: menuToEdit.highlight,
-      pdfUrl: menuToEdit.pdfUrl || ""
+      imageUrl: menuToEdit.imageUrl || ""
     });
   };
 
@@ -136,7 +142,7 @@ export default function Menu() {
         items: [""],
         info: "",
         highlight: false,
-        pdfUrl: ""
+        imageUrl: ""
       });
       toast.success('Menu ajouté avec succès');
     } catch (error) {
@@ -148,49 +154,31 @@ export default function Menu() {
   const handleAddMenuItem = () => {
     setNewMenu({
       ...newMenu,
-      items: [...newMenu.items, ""]
+      items: newMenu.items ? [...newMenu.items, ""] : [""]
     });
   };
 
   const handleRemoveMenuItem = (index: number) => {
+    if (!newMenu.items) return;
+    
     setNewMenu({
       ...newMenu,
       items: newMenu.items.filter((_, idx) => idx !== index)
     });
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, isEdit: boolean = false) => {
-    const file = event.target.files?.[0];
-    if (!file) {
-      console.log('Aucun fichier sélectionné');
-      return;
-    }
+  // Fonction pour upload d'image
+  const uploadImage = async (file: File): Promise<string | null> => {
+    if (!file) return null;
     
-    console.log('Fichier sélectionné:', file.name, 'Type:', file.type);
-    
-    // Vérifiez que c'est un PDF
-    if (file.type !== 'application/pdf') {
-      toast.error('Veuillez sélectionner un fichier PDF');
-      return;
-    }
+    setIsUploading(true);
+    toast.loading('Téléchargement de l\'image en cours...');
     
     try {
-      setUploadingPdf(true);
-      toast.loading('Téléchargement du PDF en cours...');
-      
       const formData = new FormData();
       formData.append('file', file);
       
-      console.log('Envoi de la requête au serveur...');
-      
-      // En développement, utilisez l'API locale, sinon utilisez l'API de production
-      const uploadUrl = process.env.NODE_ENV === 'development' 
-        ? `${API_URL}/uploads/pdf` 
-        : `${PROD_API_URL}/uploads/pdf`;
-        
-      console.log('API URL pour upload:', uploadUrl);
-      
-      const response = await fetch(uploadUrl, {
+      const response = await fetch(`${API_URL}/uploads/image`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -198,47 +186,27 @@ export default function Menu() {
         body: formData,
       });
       
-      console.log('Réponse du serveur:', response.status);
-      
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Erreur serveur:', errorText);
-        throw new Error(`Erreur lors du téléchargement du PDF (${response.status}): ${errorText}`);
+        throw new Error(`Erreur lors du téléchargement de l'image (${response.status}): ${errorText}`);
       }
       
       const data = await response.json();
       console.log('Données reçues:', data);
       
-      // Utiliser l'URL complète du PDF (fullFileUrl) si disponible, sinon utiliser l'URL relative (fileUrl)
-      let pdfUrl = data.fullFileUrl || data.fileUrl;
-      
-      // Si l'URL est relative, préfixer avec l'URL de l'API de production
-      if (pdfUrl.startsWith('/')) {
-        pdfUrl = `${PROD_API_URL}${pdfUrl}`;
-        console.log("URL relative convertie vers l'API de production:", pdfUrl);
-      }
-      // Si l'URL contient localhost, la remplacer par l'URL de production
-      else if (pdfUrl.includes('localhost')) {
-        pdfUrl = pdfUrl.replace(/http:\/\/localhost:\d+/, PROD_API_URL);
-        console.log("URL localhost remplacée par l'API de production:", pdfUrl);
-      }
-      
-      // Mettre à jour l'URL du PDF dans le state
-      setNewMenu({
-        ...newMenu,
-        pdfUrl: pdfUrl
-      });
-      
       toast.dismiss();
-      toast.success('PDF téléchargé avec succès');
+      toast.success('Image téléchargée avec succès');
+      
+      // Convertir le chemin de l'image en URL
+      return data.imagePath;
     } catch (error) {
-      console.error('Erreur lors du téléchargement du PDF:', error);
+      console.error('Erreur lors du téléchargement de l\'image:', error);
       toast.dismiss();
       toast.error(`Erreur: ${error instanceof Error ? error.message : 'Téléchargement échoué'}`);
+      return null;
     } finally {
-      setUploadingPdf(false);
-      // Réinitialiser l'input pour permettre de sélectionner à nouveau le même fichier
-      event.target.value = '';
+      setIsUploading(false);
     }
   };
 
@@ -286,13 +254,14 @@ export default function Menu() {
             value={newMenu.price}
             onChange={(e) => setNewMenu({ ...newMenu, price: e.target.value })}
           />
-          {newMenu.items.map((item, idx) => (
+          {newMenu.items && newMenu.items.map((item, idx) => (
             <div key={idx} className="flex gap-2 mb-2">
               <input
                 className="flex-1 p-2 bg-gray-800 rounded"
                 placeholder="Item du menu"
                 value={item}
                 onChange={(e) => {
+                  if (!newMenu.items) return;
                   const newItems = [...newMenu.items];
                   newItems[idx] = e.target.value;
                   setNewMenu({ ...newMenu, items: newItems });
@@ -320,47 +289,46 @@ export default function Menu() {
             onChange={(e) => setNewMenu({ ...newMenu, info: e.target.value })}
           />
           <div className="mb-4">
-            <label className="block text-gray-300 mb-2">Menu PDF (optionnel)</label>
-            <div className="flex flex-col gap-2">
+            <label className="block text-sm text-gray-300 mb-1">Image du menu (optionnel)</label>
+            <div className="mt-2 relative border-2 border-dashed border-gray-600 rounded p-4">
               <input
                 type="file"
-                accept="application/pdf"
+                accept="image/*"
                 ref={fileInputRef}
-                className="hidden"
-                onChange={(e) => handleFileUpload(e, false)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                onChange={async (e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    const file = e.target.files[0];
+                    const imagePath = await uploadImage(file);
+                    
+                    if (imagePath) {
+                      setNewMenu({ ...newMenu, imageUrl: imagePath });
+                    }
+                  }
+                }}
               />
-              <div className="flex gap-2 items-center">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingPdf}
-                  className="flex items-center gap-2 bg-gray-700 px-4 py-2 rounded hover:bg-gray-600 disabled:opacity-50"
-                >
-                  <Upload size={16} />
-                  {uploadingPdf ? 'Téléchargement...' : 'Télécharger un PDF'}
-                </button>
-                {newMenu.pdfUrl && (
+              <div className="text-center text-gray-400">
+                {isUploading ? (
+                  <p>Upload en cours...</p>
+                ) : (
                   <>
-                    <span className="text-green-500 text-sm">PDF téléchargé</span>
-                    {newMenu.pdfUrl && (
-                      <a 
-                        href={newMenu.pdfUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-400 hover:text-blue-300 text-sm ml-2"
-                      >
-                        Aperçu
-                      </a>
+                    <div className="flex justify-center mb-2">
+                      <Image size={40} className="text-gray-500" />
+                    </div>
+                    <p>Déposez votre image ici ou cliquez pour sélectionner</p>
+                    {newMenu.imageUrl && (
+                      <div className="mt-4">
+                        <p className="text-green-500 mb-2">Image sélectionnée: {newMenu.imageUrl.split('/').pop()}</p>
+                        <img 
+                          src={`${API_URL}${newMenu.imageUrl}`} 
+                          alt="Aperçu" 
+                          className="max-h-40 mx-auto rounded" 
+                        />
+                      </div>
                     )}
                   </>
                 )}
               </div>
-              <input
-                className="w-full p-2 bg-gray-800 rounded"
-                placeholder="Ou URL du menu PDF externe"
-                value={newMenu.pdfUrl || ""}
-                onChange={(e) => setNewMenu({ ...newMenu, pdfUrl: e.target.value })}
-              />
             </div>
           </div>
           <div className="mb-4 flex items-center gap-2">
@@ -375,6 +343,7 @@ export default function Menu() {
             <button
               onClick={handleAddMenu}
               className="flex items-center gap-2 bg-green-600 px-4 py-2 rounded hover:bg-green-700"
+              disabled={isUploading}
             >
               <Check size={20} />
               Sauvegarder
@@ -382,6 +351,7 @@ export default function Menu() {
             <button
               onClick={() => setIsAddingMenu(false)}
               className="flex items-center gap-2 bg-red-600 px-4 py-2 rounded hover:bg-red-700"
+              disabled={isUploading}
             >
               <X size={20} />
               Annuler
@@ -420,13 +390,13 @@ export default function Menu() {
                   value={newMenu.price}
                   onChange={(e) => setNewMenu({ ...newMenu, price: e.target.value })}
                 />
-                {newMenu.items.map((item, idx) => (
+                {(newMenu.items || []).map((item, idx) => (
                   <div key={idx} className="flex gap-2 mb-2">
                     <input
                       className="flex-1 p-2 bg-gray-800 rounded"
                       value={item}
                       onChange={(e) => {
-                        const newItems = [...newMenu.items];
+                        const newItems = [...(newMenu.items || [])];
                         newItems[idx] = e.target.value;
                         setNewMenu({ ...newMenu, items: newItems });
                       }}
@@ -453,47 +423,41 @@ export default function Menu() {
                   onChange={(e) => setNewMenu({ ...newMenu, info: e.target.value })}
                 />
                 <div className="mb-4">
-                  <label className="block text-gray-300 mb-2">Menu PDF (optionnel)</label>
-                  <div className="flex flex-col gap-2">
+                  <label className="block text-sm text-gray-300 mb-1">Image du menu (optionnel)</label>
+                  <div className="mt-2 relative border-2 border-dashed border-gray-600 rounded p-4">
                     <input
                       type="file"
-                      accept="application/pdf"
+                      accept="image/*"
                       ref={editFileInputRef}
-                      className="hidden"
-                      onChange={(e) => handleFileUpload(e, true)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      onChange={async (e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          const file = e.target.files[0];
+                          const imagePath = await uploadImage(file);
+                          
+                          if (imagePath) {
+                            setNewMenu({ ...newMenu, imageUrl: imagePath });
+                          }
+                        }
+                      }}
                     />
-                    <div className="flex gap-2 items-center">
-                      <button
-                        type="button"
-                        onClick={() => editFileInputRef.current?.click()}
-                        disabled={uploadingPdf}
-                        className="flex items-center gap-2 bg-gray-700 px-4 py-2 rounded hover:bg-gray-600 disabled:opacity-50"
-                      >
-                        <Upload size={16} />
-                        {uploadingPdf ? 'Téléchargement...' : 'Télécharger un PDF'}
-                      </button>
-                      {newMenu.pdfUrl && (
+                    <div className="text-center text-gray-400">
+                      {isUploading ? (
+                        <p>Upload en cours...</p>
+                      ) : (
                         <>
-                          <span className="text-green-500 text-sm">PDF disponible</span>
-                          {newMenu.pdfUrl && (
-                            <a 
-                              href={newMenu.pdfUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-blue-400 hover:text-blue-300 text-sm ml-2"
-                            >
-                              Aperçu
-                            </a>
+                          <div className="flex justify-center mb-2">
+                            <Image size={40} className="text-gray-500" />
+                          </div>
+                          <p>Déposez votre image ici ou cliquez pour sélectionner</p>
+                          {newMenu.imageUrl && (
+                            <div className="mt-4">
+                              <p className="text-green-500 mb-2">Image sélectionnée: {newMenu.imageUrl.split('/').pop()}</p>
+                            </div>
                           )}
                         </>
                       )}
                     </div>
-                    <input
-                      className="w-full p-2 bg-gray-800 rounded"
-                      placeholder="Ou URL du menu PDF externe"
-                      value={newMenu.pdfUrl || ""}
-                      onChange={(e) => setNewMenu({ ...newMenu, pdfUrl: e.target.value })}
-                    />
                   </div>
                 </div>
                 <div className="mb-4 flex items-center gap-2">
@@ -508,6 +472,7 @@ export default function Menu() {
                   <button
                     onClick={() => handleSaveMenu(index)}
                     className="flex items-center gap-2 bg-green-600 px-4 py-2 rounded hover:bg-green-700"
+                    disabled={isUploading}
                   >
                     <Check size={20} />
                     Sauvegarder
@@ -515,6 +480,7 @@ export default function Menu() {
                   <button
                     onClick={() => setEditingMenu(null)}
                     className="flex items-center gap-2 bg-red-600 px-4 py-2 rounded hover:bg-red-700"
+                    disabled={isUploading}
                   >
                     <X size={20} />
                     Annuler
@@ -527,45 +493,32 @@ export default function Menu() {
                   <h3 className="text-xl font-bold">{menu.name}</h3>
                   <span className="text-[#C4B5A2] font-bold">{menu.price}</span>
                 </div>
-                <ul className="mb-4 space-y-2">
-                  {menu.items.map((item, idx) => (
-                    <li key={idx} className="text-gray-300">• {item}</li>
-                  ))}
-                </ul>
+                
+                {menu.items && menu.items.length > 0 && (
+                  <ul className="mb-4 space-y-2">
+                    {menu.items.map((item, idx) => (
+                      <li key={idx} className="text-gray-300">• {item}</li>
+                    ))}
+                  </ul>
+                )}
+                
                 {menu.info && (
                   <p className="text-sm text-gray-400 italic mb-4">{menu.info}</p>
                 )}
-                {menu.pdfUrl && (
-                  <a 
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      // Vérifier que pdfUrl existe et n'est pas undefined
-                      if (menu.pdfUrl) {
-                        console.log("Ouverture du PDF:", menu.pdfUrl);
-                        
-                        let pdfUrl = menu.pdfUrl;
-                        
-                        // Si l'URL est relative (commence par /)
-                        if (pdfUrl.startsWith('/')) {
-                          pdfUrl = `${PROD_API_URL}${pdfUrl}`;
-                          console.log("URL convertie vers l'API de production:", pdfUrl);
-                        } 
-                        // Si l'URL contient localhost, la remplacer par l'URL de production
-                        else if (pdfUrl.includes('localhost')) {
-                          pdfUrl = pdfUrl.replace(/http:\/\/localhost:\d+/, PROD_API_URL);
-                          console.log("URL localhost remplacée par l'API de production:", pdfUrl);
-                        }
-                        
-                        // Ouvrir dans un nouvel onglet
-                        window.open(pdfUrl, '_blank');
-                      }
-                    }}
-                    className="flex items-center gap-2 bg-[#C4B5A2] text-black px-3 py-2 rounded-md hover:bg-[#a39482] inline-block mb-4"
-                  >
-                    <FileText size={16} />
-                    Consulter le menu en PDF
-                  </a>
+
+                {menu.imageUrl && (
+                  <div className="mb-4">
+                    <button
+                      onClick={() => {
+                        // Ouvrir l'image dans un nouvel onglet
+                        window.open(`${API_URL}${menu.imageUrl}`, '_blank');
+                      }}
+                      className="flex items-center gap-2 bg-[#C4B5A2] text-black px-3 py-2 rounded-md hover:bg-[#a39482] inline-block"
+                    >
+                      <Image size={16} />
+                      Consulter l'image du menu
+                    </button>
+                  </div>
                 )}
 
                 {user?.role === 'admin' && (

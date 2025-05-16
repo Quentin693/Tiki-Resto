@@ -29,7 +29,7 @@ export class Menu {
     example: ['Entrée au choix', 'Grenouilles à volonté', 'Dessert au choix'],
     required: false
   })
-  @Column('simple-array', { nullable: true, default: [] })
+  @Column('simple-array', { nullable: true, default: null })
   items: string[];
 
   @ApiProperty({
@@ -49,10 +49,10 @@ export class Menu {
   highlight: boolean;
 
   @ApiProperty({
-    description: 'URL du menu en format PDF (optionnel)',
-    example: '/uploads/pdfs/1234abcd.pdf',
+    description: 'URL de l\'image du menu (optionnel)',
+    example: '/uploads/images/1234abcd.jpg',
     required: false
   })
   @Column({ nullable: true })
-  pdfUrl: string;
+  imageUrl: string;
 } 
