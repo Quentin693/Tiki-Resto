@@ -51,8 +51,8 @@ let ReservationsService = ReservationsService_1 = class ReservationsService {
             return;
         const formattedDateTime = this.formatDateToFrenchTimezone(reservation.reservationDateTime);
         let message = '';
-        const signupLink = `${this.configService.get('FRONTEND_URL')}/signup}`;
-        const modificationLink = `${this.configService.get('FRONTEND_URL')}/login}`;
+        const signupLink = `${this.configService.get('FRONTEND_URL')}/login`;
+        const modificationLink = `${this.configService.get('FRONTEND_URL')}/login`;
         switch (action) {
             case 'confirmation':
                 message = `Votre réservation chez le Tiki Au Bord de l'eau pour ${reservation.numberOfGuests} personnes le ${formattedDateTime} est confirmée ! 

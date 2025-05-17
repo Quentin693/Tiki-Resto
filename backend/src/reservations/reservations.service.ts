@@ -48,8 +48,8 @@ export class ReservationsService {
 
     const formattedDateTime = this.formatDateToFrenchTimezone(reservation.reservationDateTime);
     let message = '';
-    const signupLink = `${this.configService.get('FRONTEND_URL')}/signup}`;
-    const modificationLink = `${this.configService.get('FRONTEND_URL')}/login}`;
+    const signupLink = `${this.configService.get('FRONTEND_URL')}/login`;
+    const modificationLink = `${this.configService.get('FRONTEND_URL')}/login`;
     
     switch (action) {
       case 'confirmation':
