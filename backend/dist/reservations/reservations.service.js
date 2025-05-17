@@ -85,7 +85,7 @@ Pour toute question, veuillez nous contacter au 04 78 49 02 39.`;
             await this.twilioClient.messages.create({
                 body: message,
                 to: phoneNumber,
-                from: this.configService.get('TWILIO_PHONE_NUMBER'),
+                from: "TikiLyon",
             });
         }
         catch (error) {
