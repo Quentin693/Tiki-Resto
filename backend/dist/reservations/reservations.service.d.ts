@@ -11,7 +11,8 @@ export declare class ReservationsService {
     private twilioClient;
     private readonly logger;
     constructor(reservationsRepository: Repository<Reservation>, configService: ConfigService);
-    private sendConfirmationSMS;
+    private formatDateToFrenchTimezone;
+    private sendReservationSMS;
     private checkAvailability;
     getAvailableTimeSlots(date: string): Promise<TimeSlotsResponseDto>;
     create(createReservationDto: CreateReservationDto): Promise<Reservation>;

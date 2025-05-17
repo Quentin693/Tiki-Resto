@@ -35,25 +35,49 @@ let ReservationsService = ReservationsService_1 = class ReservationsService {
             this.twilioClient = twilio(accountSid, authToken);
         }
     }
-    async sendConfirmationSMS(reservation) {
+    formatDateToFrenchTimezone(date) {
+        const options = {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: 'Europe/Paris'
+        };
+        return new Date(date).toLocaleString('fr-FR', options);
+    }
+    async sendReservationSMS(reservation, action = 'confirmation') {
         if (!this.twilioClient)
             return;
-        const formatDate = (date) => {
-            return new Date(date).toLocaleString('fr-FR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        };
-        const siteUrl = this.configService.get('FRONTEND_URL') || 'https://tikiaureunion.fr';
-        const signupLink = `${siteUrl}/signup?redirect=mes-reservations&email=${encodeURIComponent(reservation.customerEmail)}`;
-        const message = `Votre réservation chez le Tiki Au Bord de l'eau pour ${reservation.numberOfGuests} personnes le ${formatDate(reservation.reservationDateTime)} est confirmée ! 
-    
-Pour modifier ou annuler votre réservation, créez un compte avec ce lien: ${signupLink}
+        const formattedDateTime = this.formatDateToFrenchTimezone(reservation.reservationDateTime);
+        let message = '';
+        const signupLink = `${this.configService.get('FRONTEND_URL')}/signup}`;
+        const modificationLink = `${this.configService.get('FRONTEND_URL')}/login}`;
+        switch (action) {
+            case 'confirmation':
+                message = `Votre réservation chez le Tiki Au Bord de l'eau pour ${reservation.numberOfGuests} personnes le ${formattedDateTime} est confirmée ! 
+
+Pour toute modification, veuillez nous contacter au 04 78 49 02 39 ou créez un compte avec ce lien: ${signupLink}.
     
 À bientôt !`;
+                break;
+            case 'modification':
+                message = `Votre réservation chez le Tiki Au Bord de l'eau a été modifiée avec succès. 
+
+Nouvelle réservation pour ${reservation.numberOfGuests} personnes le ${formattedDateTime}.
+
+Pour toute autre modification, veuillez nous contacter au 04 78 49 02 39 ou connectez-vous avec ce lien: ${modificationLink}.
+    
+À bientôt !`;
+                break;
+            case 'annulation':
+                message = `Votre réservation chez le Tiki Au Bord de l'eau pour ${reservation.numberOfGuests} personnes le ${formattedDateTime} a été annulée.
+
+Nous espérons vous revoir bientôt !
+
+Pour toute question, veuillez nous contacter au 04 78 49 02 39.`;
+                break;
+        }
         try {
             const phoneNumber = reservation.customerPhone.startsWith('0')
                 ? '+33' + reservation.customerPhone.substring(1)
@@ -146,7 +170,7 @@ Pour modifier ou annuler votre réservation, créez un compte avec ce lien: ${si
             reservationDateTime
         });
         const savedReservation = await this.reservationsRepository.save(reservation);
-        await this.sendConfirmationSMS(savedReservation);
+        await this.sendReservationSMS(savedReservation, 'confirmation');
         return savedReservation;
     }
     findAll() {
@@ -225,7 +249,9 @@ Pour modifier ou annuler votre réservation, créez un compte avec ce lien: ${si
                 reservation.reservationDateTime = newDateTime;
             }
         }
-        return this.reservationsRepository.save(reservation);
+        const updatedReservation = await this.reservationsRepository.save(reservation);
+        await this.sendReservationSMS(updatedReservation, 'modification');
+        return updatedReservation;
     }
     async adminUpdate(id, adminUpdateDto) {
         this.logger.log(`Service: Mise à jour admin de la réservation #${id}: ${JSON.stringify(adminUpdateDto)}`);
@@ -244,6 +270,7 @@ Pour modifier ou annuler votre réservation, créez un compte avec ce lien: ${si
     }
     async remove(id) {
         const reservation = await this.findOne(id);
+        await this.sendReservationSMS(reservation, 'annulation');
         await this.reservationsRepository.remove(reservation);
     }
 };
